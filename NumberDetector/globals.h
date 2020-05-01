@@ -4,10 +4,10 @@
 #define GLOBALS_H_
 
 namespace globals {
-	const int SCREEN_WIDTH = 280;
-	const int SCREEN_HEIGHT = 380;
+	const int SCREEN_WIDTH = 32;
+	const int SCREEN_HEIGHT = 42;
 
-	const int SPRITE_SCALE = 10;
+	const int SPRITE_SCALE = 13;
 }
 
 namespace sides {

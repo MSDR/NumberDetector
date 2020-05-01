@@ -1,13 +1,5 @@
 #include "game.h"
 
-namespace {
-	const int FPS = 60;
-	const int MAX_FRAME_TIME = 75;
-}
-
-namespace input_keys {
-	SDL_Scancode key_name = SDL_SCANCODE_0;
-}
 
 Game::Game() {
 	SDL_Init(SDL_INIT_EVERYTHING);
@@ -28,17 +20,22 @@ void Game::gameLoop() {
 	Input input;
 	SDL_Event event;
 
-
-	/*sprite_ = Sprite(Graphics &graphics, const std::string &filePath, int sourceX, int sourceY, 
-	int width, int height, float posX, float posY); */
+	SDL_ShowCursor(SDL_DISABLE);
+	//brushOutline_ = new Sprite(graphics, "Images/BrushOutline.png", 0, 0, 92, 92); 
 
 	int LAST_UPDATE_TIME = SDL_GetTicks();
+
+	for (int i = 0; i < 28; ++i) {
+		for (int j = 0; j < 28; ++j) {
+			canvas_[i][j] = 0;
+		}
+	}
 
 	//Start game loop
 	while (true) {
 		input.beginNewFrame();
 
-		if (SDL_PollEvent(&event)) {
+		if (SDL_WaitEvent(&event) != 0) {
 			if (event.type == SDL_KEYDOWN) {
 				if (event.key.repeat == 0) {
 					input.keyDownEvent(event);
@@ -50,12 +47,35 @@ void Game::gameLoop() {
 			}
 		}
 
+		if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) || input.isKeyHeld(SDL_SCANCODE_SPACE)) {
+			int mouseX = 0;
+			int mouseY = 0;
+			SDL_GetMouseState(&mouseX, &mouseY);
+			int cx = (mouseX - mouseX % globals::SPRITE_SCALE)/globals::SPRITE_SCALE - 3;
+			int cy = (mouseY - mouseY % globals::SPRITE_SCALE) / globals::SPRITE_SCALE - 3;
+			if(cx < 28 && cy < 28 && cx >= 0 && cy >= 0) {
+				for (int i = cy; i < cy + 3; ++i) {
+					for (int j = cx; j < cx + 3; ++j) {
+						canvas_[i][j] = 1;
+					}
+				}
+			}
+		}
+		if (input.wasKeyPressed(SDL_SCANCODE_Z) || input.wasKeyPressed(SDL_SCANCODE_BACKSPACE)) {
+			for (int i = 0; i < 28; ++i) {
+				for (int j = 0; j < 28; ++j) {
+					canvas_[i][j] = 0;
+				}
+			}
+		}
 		if (input.wasKeyPressed(SDL_SCANCODE_DELETE))
 			return;
 
+		
+
 		const int CURRENT_TIME_MILLIS = SDL_GetTicks();
 		int ELAPSED_TIME_MILLIS = CURRENT_TIME_MILLIS - LAST_UPDATE_TIME;
-		update(std::min(ELAPSED_TIME_MILLIS, MAX_FRAME_TIME));
+		update(ELAPSED_TIME_MILLIS);
 		LAST_UPDATE_TIME = CURRENT_TIME_MILLIS;
 		draw(graphics);
 	}//end game loop
@@ -63,10 +83,58 @@ void Game::gameLoop() {
 
 void Game::draw(Graphics &graphics) {
 	graphics.clear();
-	sprite_.draw(graphics, sprite_.getX(), sprite_.getY());
+	drawBackground(graphics.getRenderer());
+	drawCanvas(graphics.getRenderer());
+	int mouseX = 0;
+	int mouseY = 0;
+	SDL_GetMouseState(&mouseX, &mouseY);
+	//std::cout << mouseX-mouseX%globals::SPRITE_SCALE << " " << mouseY-mouseY%globals::SPRITE_SCALE << std::endl;
+
+	//Draw brush outline
+	SDL_Rect brushOutline; 
+	{  brushOutline.x = (mouseX - mouseX % globals::SPRITE_SCALE) - globals::SPRITE_SCALE;
+		brushOutline.y = (mouseY - mouseY % globals::SPRITE_SCALE) - globals::SPRITE_SCALE;
+		brushOutline.w = 3 * globals::SPRITE_SCALE; 
+		brushOutline.h = 3 * globals::SPRITE_SCALE;  }
+	SDL_SetRenderDrawColor(graphics.getRenderer(), 238, 37, 37, 120);
+	SDL_RenderDrawRect(graphics.getRenderer(), &brushOutline);
+	SDL_SetRenderDrawColor(graphics.getRenderer(), 255, 255, 255, 255);
+
+	//brushOutline_->draw(graphics, mouseX-mouseX%globals::SPRITE_SCALE, mouseY-mouseY%globals::SPRITE_SCALE);
+	
+
 	graphics.flip();
 }
 
+void Game::drawBackground(SDL_Renderer* renderer) {
+	//Solid white background
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	SDL_RenderFillRect(renderer, NULL);
+
+	//Drawing space outline
+	SDL_Rect outline; outline.x = 2*globals::SPRITE_SCALE-1; outline.y = 2*globals::SPRITE_SCALE-1; 
+							outline.w = 28*globals::SPRITE_SCALE+2; outline.h = 28*globals::SPRITE_SCALE+2;
+	SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+	SDL_RenderDrawRect(renderer, &outline);
+}
+
+void Game::drawCanvas(SDL_Renderer* renderer) {
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_Rect r;
+	r.w = globals::SPRITE_SCALE;
+	r.h = globals::SPRITE_SCALE;
+
+	for (int i = 0; i < 28; ++i) {
+		//std::cout << std::endl;
+		for (int j = 0; j < 28; ++j) {
+			//std::cout << canvas_[i][j] << " ";
+			if (canvas_[i][j] > 0) {
+				r.x = 2 * globals::SPRITE_SCALE + j * globals::SPRITE_SCALE;
+				r.y = 2 * globals::SPRITE_SCALE + i * globals::SPRITE_SCALE;
+				SDL_RenderFillRect(renderer, &r);
+			}
+		}
+	}
+}
 void Game::update(float elapsedTime) {
-	sprite_.update(elapsedTime);
 }

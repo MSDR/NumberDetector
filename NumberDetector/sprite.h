@@ -9,7 +9,7 @@
 class Sprite {
 public:
 	Sprite();
-	Sprite(Graphics &graphics, const std::string &filePath, int sourceX, int sourceY, int width, int height, float posX, float posY);
+	Sprite(Graphics &graphics, const std::string &filePath, int sourceX, int sourceY, int width, int height, float posX = 0.0, float posY = 0.0);
 	virtual ~Sprite();
 
 	//Updates the Sprite and its members

@@ -16,10 +16,12 @@ private:
 	void gameLoop();
 
 	void draw(Graphics &graphics);
-
+	void drawBackground(SDL_Renderer* renderer);
+	void drawCanvas(SDL_Renderer* renderer);
 	void update(float elapsedTime);
 
-	Sprite sprite_;
+	int canvas_[28][28];
+	//Sprite* brushOutline_;
 };
 
 #endif GAME_H_

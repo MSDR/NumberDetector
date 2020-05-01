@@ -141,6 +141,9 @@
     <ClInclude Include="sprite.h" />
     <ClInclude Include="text.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Images\BrushOutline.png" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
