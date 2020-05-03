@@ -7,7 +7,7 @@ namespace globals {
 	const int SCREEN_WIDTH = 32;
 	const int SCREEN_HEIGHT = 42;
 
-	const int SPRITE_SCALE = 13;
+	const int SPRITE_SCALE = 15;
 }
 
 namespace sides {
@@ -43,6 +43,14 @@ struct Vector2 {
 
 	Vector2 zero() {
 		return Vector2(0, 0);
+	}
+
+	//Clamps x and y between bounds, where bounds[X/Y].x value is the lower bound and bounds[X/Y]y is the upper bound
+	void clampValues(Vector2 boundsX, Vector2 boundsY) {
+		x = x < boundsX.x ? boundsX.x : x;
+		x = x > boundsX.y ? boundsX.y : x;
+		y = y < boundsY.x ? boundsY.x : y;
+		y = y > boundsY.y ? boundsY.y : y;
 	}
 };
 

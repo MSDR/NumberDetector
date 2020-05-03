@@ -1,4 +1,4 @@
-#include "game.h"
+﻿#include "game.h"
 
 
 Game::Game() {
@@ -19,20 +19,23 @@ Game::~Game() {
 }
 
 void Game::gameLoop() {
-	//Initialize members
-	Graphics graphics;
+	//Initialize core program functionality
+	Graphics graphics; //Game window established in here
 	Input input;
 	SDL_Event event;
 
+	int LAST_UPDATE_TIME = SDL_GetTicks();
+
 	//brushOutline_ = new Sprite(graphics, "Images/BrushOutline.png", 0, 0, 92, 92); 
 
+	//Set up number request text
+	collectingData_ = true;
 	canvasNum_ = std::rand() % 10;
-
 	numRequestLine_ = new Text();
-	numRequestLine_->loadFont("Assets/Pixel NES.ttf", 1.5*globals::SPRITE_SCALE);
+	numRequestLine_->loadFont("Assets/Pixel NES.ttf", 2*globals::SPRITE_SCALE);
 	numRequestLine_->update(graphics, "Draw a " + std::to_string(canvasNum_), { 0, 0, 0, 255 });
-	std::cout << canvasNum_;
-	int LAST_UPDATE_TIME = SDL_GetTicks();
+
+	//Initialize an empty canvas_
 	canvas_ = new int*[28];
 	for (int i = 0; i < 28; ++i) {
 		canvas_[i] = new int[28];
@@ -40,8 +43,6 @@ void Game::gameLoop() {
 			canvas_[i][j] = 0;
 		}
 	}
-	
-	collectingData_ = true;
 
 	//Start game loop
 	while (true) {
@@ -64,13 +65,12 @@ void Game::gameLoop() {
 			int mouseX = 0;
 			int mouseY = 0;
 			SDL_GetMouseState(&mouseX, &mouseY);
-			int cx = (mouseX - mouseX % globals::SPRITE_SCALE)/globals::SPRITE_SCALE - 3;
+			int cx = (mouseX - mouseX % globals::SPRITE_SCALE) / globals::SPRITE_SCALE - 3;
 			int cy = (mouseY - mouseY % globals::SPRITE_SCALE) / globals::SPRITE_SCALE - 3;
-			if(cx < 25 && cy < 25 && cx >= 0 && cy >= 0) {
-				for (int i = cy; i < cy + 3; ++i) {
-					for (int j = cx; j < cx + 3; ++j) {
+			for (int i = cy; i < cy + 3; ++i) {
+				for (int j = cx; j < cx + 3; ++j) {
+					if(j <= 27 && i <= 27 && j >= 0 && i >= 0) 
 						canvas_[i][j] = 1;
-					}
 				}
 			}
 		}
@@ -96,29 +96,29 @@ void Game::gameLoop() {
 			}
 			canvases_.push_back(c);
 
+			//Reset number request
 			canvasNum_ = std::rand() % 10;
 			numRequestLine_->update(graphics, "Draw a " + std::to_string(canvasNum_), { 0, 0, 0, 255 });
-
 		}
 
 		//Print canvases_ to the console
 		if (input.wasKeyPressed(SDL_SCANCODE_S)) {
-			for(int v = 0; v < canvases_.size(); ++v){
-				std::cout << std::endl << std::endl;
-				for (int i = 0; i < 28; ++i) {
-					std::cout << std::endl;
-					for (int j = 0; j < 28; ++j) {
-						std::cout << canvases_[v][i][j] << " ";
-					}
-				}
-			}
 			std::cout << "\n________________________________________________________\n";
+			for(int v = 0; v < canvases_.size(); ++v){
+				for (int i = 0; i < 28; ++i) {
+					std::cout << "|";
+					for (int j = 0; j < 28; ++j) {
+						std::cout << (canvases_[v][i][j] == 0 ? " " : "@") << " ";
+					}
+					std::cout << "|\n";
+				}
+				std::cout << "|________________________________________________________" << (v == canvases_.size()-1 ? "|" : "");
+			}
 		}
+
 		//Exit the program
 		if (input.wasKeyPressed(SDL_SCANCODE_DELETE))
 			return;
-
-		
 
 		const int CURRENT_TIME_MILLIS = SDL_GetTicks();
 		int ELAPSED_TIME_MILLIS = CURRENT_TIME_MILLIS - LAST_UPDATE_TIME;
@@ -132,25 +132,16 @@ void Game::draw(Graphics &graphics) {
 	graphics.clear();
 	drawBackground(graphics.getRenderer());
 	drawCanvas(graphics.getRenderer());
-	int mouseX = 0;
-	int mouseY = 0;
+	int mouseX, mouseY = 0;
 	SDL_GetMouseState(&mouseX, &mouseY);
+	drawBrushOutline(graphics.getRenderer(), mouseX, mouseY);
 	//std::cout << mouseX-mouseX%globals::SPRITE_SCALE << " " << mouseY-mouseY%globals::SPRITE_SCALE << std::endl;
 
-	//Draw brush outline
-	SDL_Rect brushOutline; 
-	{  brushOutline.x = (mouseX - mouseX % globals::SPRITE_SCALE) - globals::SPRITE_SCALE;
-		brushOutline.y = (mouseY - mouseY % globals::SPRITE_SCALE) - globals::SPRITE_SCALE;
-		brushOutline.w = 3 * globals::SPRITE_SCALE; 
-		brushOutline.h = 3 * globals::SPRITE_SCALE;  }
-	SDL_SetRenderDrawColor(graphics.getRenderer(), 238, 37, 37, 120);
-	SDL_RenderDrawRect(graphics.getRenderer(), &brushOutline);
-	SDL_SetRenderDrawColor(graphics.getRenderer(), 255, 255, 255, 255);
 
 	//brushOutline_->draw(graphics, mouseX-mouseX%globals::SPRITE_SCALE, mouseY-mouseY%globals::SPRITE_SCALE);
 	
 	//Draw text to request a number
-	numRequestLine_->draw(graphics, 2 * globals::SPRITE_SCALE, 30 * globals::SPRITE_SCALE);
+	numRequestLine_->draw(graphics, 2 * globals::SPRITE_SCALE - 1, 30 * globals::SPRITE_SCALE);
 
 	graphics.flip();
 }
@@ -162,9 +153,52 @@ void Game::drawBackground(SDL_Renderer* renderer) {
 
 	//Drawing space outline
 	SDL_Rect outline; outline.x = 2*globals::SPRITE_SCALE-1; outline.y = 2*globals::SPRITE_SCALE-1; 
-							outline.w = 28*globals::SPRITE_SCALE+2; outline.h = 28*globals::SPRITE_SCALE+2;
+							outline.w = (28*globals::SPRITE_SCALE)+3; outline.h = (28*globals::SPRITE_SCALE)+3;
 	SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
 	SDL_RenderDrawRect(renderer, &outline);
+}
+
+void Game::drawBrushOutline(SDL_Renderer* renderer, int mouseX, int mouseY) {
+	SDL_SetRenderDrawColor(renderer, 238, 37, 37, 120);
+
+	Vector2 p1, p2; 
+	Vector2 bounds = Vector2(2*globals::SPRITE_SCALE, 30*globals::SPRITE_SCALE);
+
+	//Upper line
+	p1.x = (mouseX - mouseX % globals::SPRITE_SCALE) - globals::SPRITE_SCALE; 
+	p1.y = (mouseY - mouseY % globals::SPRITE_SCALE) - globals::SPRITE_SCALE;
+	p2.x = (mouseX - mouseX % globals::SPRITE_SCALE) + 2*globals::SPRITE_SCALE; 
+	p2.y = p1.y;  
+	p1.clampValues(bounds, bounds);
+	p2.clampValues(bounds, bounds);
+	SDL_RenderDrawLine(renderer, p1.x, p1.y, p2.x, p2.y);
+
+	//Left line
+	p1.x = (mouseX - mouseX % globals::SPRITE_SCALE) - globals::SPRITE_SCALE; 
+	p1.y = (mouseY - mouseY % globals::SPRITE_SCALE) - globals::SPRITE_SCALE;
+	p2.x = p1.x; 
+	p2.y = (mouseY - mouseY % globals::SPRITE_SCALE) + 2*globals::SPRITE_SCALE;  
+	p1.clampValues(bounds, bounds);
+	p2.clampValues(bounds, bounds);
+	SDL_RenderDrawLine(renderer, p1.x, p1.y, p2.x, p2.y);
+
+	//Lower line
+	p1.x = (mouseX - mouseX % globals::SPRITE_SCALE) - globals::SPRITE_SCALE; 
+	p1.y = (mouseY - mouseY % globals::SPRITE_SCALE) + 2*globals::SPRITE_SCALE;
+	p2.x = (mouseX - mouseX % globals::SPRITE_SCALE) + 2*globals::SPRITE_SCALE; 
+	p2.y = p1.y;  
+	p1.clampValues(bounds, bounds);
+	p2.clampValues(bounds, bounds);
+	SDL_RenderDrawLine(renderer, p1.x, p1.y, p2.x, p2.y);
+
+	//Right line
+	p1.x = (mouseX - mouseX % globals::SPRITE_SCALE) + 2*globals::SPRITE_SCALE; 
+	p1.y = (mouseY - mouseY % globals::SPRITE_SCALE) - globals::SPRITE_SCALE;
+	p2.x = p1.x; 
+	p2.y = (mouseY - mouseY % globals::SPRITE_SCALE) + 2*globals::SPRITE_SCALE;  
+	p1.clampValues(bounds, bounds);
+	p2.clampValues(bounds, bounds);
+	SDL_RenderDrawLine(renderer, p1.x, p1.y, p2.x, p2.y);
 }
 
 void Game::drawCanvas(SDL_Renderer* renderer) {

@@ -19,6 +19,7 @@ private:
 
 	void draw(Graphics &graphics);
 	void drawBackground(SDL_Renderer* renderer);
+	void drawBrushOutline(SDL_Renderer* renderer, int mouseX, int mouseY);
 	void drawCanvas(SDL_Renderer* renderer);
 	void update(float elapsedTime);
 
