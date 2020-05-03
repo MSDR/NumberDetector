@@ -10,6 +10,7 @@ Text::Text() :
 
 
 Text::~Text() {
+	TTF_CloseFont(font_);
 	clearTexture();
 }
 
@@ -58,7 +59,7 @@ void Text::setAlpha(Uint8 a) {
 	SDL_SetTextureAlphaMod(texture_, a);
 }
 
-#ifdef _SDL_TTF_H
+//#ifdef _SDL_TTF_H
 void Text::draw(Graphics &graphics, int x, int y, double angle, SDL_RendererFlip flip, SDL_Rect * clip, SDL_Point * center) {
 	//Set rendering space and render to screen
 	SDL_Rect renderQuad = { x, y, width_, height_ };
@@ -71,9 +72,8 @@ void Text::draw(Graphics &graphics, int x, int y, double angle, SDL_RendererFlip
 
 	//Render to screen
 	SDL_RenderCopyEx(graphics.getRenderer(), texture_, clip, &renderQuad, angle, center, flip);
-	TTF_CloseFont(font_);
 }
-#endif
+//#endif
 
 void Text::clearTexture() {
 	if (texture_ != NULL)

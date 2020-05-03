@@ -3,33 +3,45 @@
 
 Game::Game() {
 	SDL_Init(SDL_INIT_EVERYTHING);
-	IMG_Init(IMG_INIT_PNG);
+	//IMG_Init(IMG_INIT_PNG);
+	if (TTF_Init() == -1) {
+		std::cout << TTF_GetError() << std::endl;
+		SDL_Quit();
+	}
 
 	gameLoop();
-
-	IMG_Quit();
-	SDL_Quit();
 }
 
 Game::~Game() {
-
+	TTF_Quit();
+	//IMG_Quit();
+	SDL_Quit();
 }
 
 void Game::gameLoop() {
+	//Initialize members
 	Graphics graphics;
 	Input input;
 	SDL_Event event;
 
-	SDL_ShowCursor(SDL_DISABLE);
 	//brushOutline_ = new Sprite(graphics, "Images/BrushOutline.png", 0, 0, 92, 92); 
 
-	int LAST_UPDATE_TIME = SDL_GetTicks();
+	canvasNum_ = std::rand() % 10;
 
+	numRequestLine_ = new Text();
+	numRequestLine_->loadFont("Assets/Pixel NES.ttf", 1.5*globals::SPRITE_SCALE);
+	numRequestLine_->update(graphics, "Draw a " + std::to_string(canvasNum_), { 0, 0, 0, 255 });
+	std::cout << canvasNum_;
+	int LAST_UPDATE_TIME = SDL_GetTicks();
+	canvas_ = new int*[28];
 	for (int i = 0; i < 28; ++i) {
+		canvas_[i] = new int[28];
 		for (int j = 0; j < 28; ++j) {
 			canvas_[i][j] = 0;
 		}
 	}
+	
+	collectingData_ = true;
 
 	//Start game loop
 	while (true) {
@@ -47,13 +59,14 @@ void Game::gameLoop() {
 			}
 		}
 
-		if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) || input.isKeyHeld(SDL_SCANCODE_SPACE)) {
+		//Draw onto canvas
+		if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) || input.isKeyHeld(SDL_SCANCODE_D)) {
 			int mouseX = 0;
 			int mouseY = 0;
 			SDL_GetMouseState(&mouseX, &mouseY);
 			int cx = (mouseX - mouseX % globals::SPRITE_SCALE)/globals::SPRITE_SCALE - 3;
 			int cy = (mouseY - mouseY % globals::SPRITE_SCALE) / globals::SPRITE_SCALE - 3;
-			if(cx < 28 && cy < 28 && cx >= 0 && cy >= 0) {
+			if(cx < 25 && cy < 25 && cx >= 0 && cy >= 0) {
 				for (int i = cy; i < cy + 3; ++i) {
 					for (int j = cx; j < cx + 3; ++j) {
 						canvas_[i][j] = 1;
@@ -61,6 +74,8 @@ void Game::gameLoop() {
 				}
 			}
 		}
+		
+		//Clear canvas
 		if (input.wasKeyPressed(SDL_SCANCODE_Z) || input.wasKeyPressed(SDL_SCANCODE_BACKSPACE)) {
 			for (int i = 0; i < 28; ++i) {
 				for (int j = 0; j < 28; ++j) {
@@ -68,6 +83,38 @@ void Game::gameLoop() {
 				}
 			}
 		}
+
+		//Submit a canvas
+		if (input.wasKeyPressed(SDL_SCANCODE_E) || input.wasKeyPressed(SDL_SCANCODE_RETURN)) {
+			int** c = new int*[28];
+			for (int i = 0; i < 28; ++i) {
+				c[i] = new int[28];
+				for (int j = 0; j < 28; ++j) {
+					c[i][j] = canvas_[i][j];
+					canvas_[i][j] = 0;
+				}
+			}
+			canvases_.push_back(c);
+
+			canvasNum_ = std::rand() % 10;
+			numRequestLine_->update(graphics, "Draw a " + std::to_string(canvasNum_), { 0, 0, 0, 255 });
+
+		}
+
+		//Print canvases_ to the console
+		if (input.wasKeyPressed(SDL_SCANCODE_S)) {
+			for(int v = 0; v < canvases_.size(); ++v){
+				std::cout << std::endl << std::endl;
+				for (int i = 0; i < 28; ++i) {
+					std::cout << std::endl;
+					for (int j = 0; j < 28; ++j) {
+						std::cout << canvases_[v][i][j] << " ";
+					}
+				}
+			}
+			std::cout << "\n________________________________________________________\n";
+		}
+		//Exit the program
 		if (input.wasKeyPressed(SDL_SCANCODE_DELETE))
 			return;
 
@@ -102,6 +149,8 @@ void Game::draw(Graphics &graphics) {
 
 	//brushOutline_->draw(graphics, mouseX-mouseX%globals::SPRITE_SCALE, mouseY-mouseY%globals::SPRITE_SCALE);
 	
+	//Draw text to request a number
+	numRequestLine_->draw(graphics, 2 * globals::SPRITE_SCALE, 30 * globals::SPRITE_SCALE);
 
 	graphics.flip();
 }

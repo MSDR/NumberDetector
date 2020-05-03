@@ -12,18 +12,18 @@ public:
 
 	void setAlpha(Uint8 alpha);
 
-	virtual bool update(Graphics &graphics, std::string text, SDL_Color textColor = { 255, 255, 255, 0xFF });
+	bool update(Graphics &graphics, std::string text, SDL_Color textColor = { 255, 255, 255, 0xFF });
 
-#ifdef _SDL_TTF_H		
-	virtual void draw(Graphics &graphics, int x, int y, double angle, SDL_RendererFlip flip = SDL_FLIP_NONE, SDL_Rect* clip = NULL, SDL_Point* center = NULL);
-#endif
+//#ifdef _SDL_TTF_H		
+	void draw(Graphics &graphics, int x, int y, double angle = 0.0, SDL_RendererFlip flip = SDL_FLIP_NONE, SDL_Rect* clip = NULL, SDL_Point* center = NULL);
+//#endif
 
 	void clearTexture();
 
 	void loadFont(const std::string &filePath, int fontSize);
 
-	virtual int getWidth() const;
-	virtual int getHeight() const;
+	int getWidth() const;
+	int getHeight() const;
 	std::string getText() const;
 
 protected:

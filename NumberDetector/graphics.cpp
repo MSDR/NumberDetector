@@ -6,6 +6,7 @@ Graphics::Graphics() {
 	SDL_CreateWindowAndRenderer(globals::SCREEN_WIDTH*globals::SPRITE_SCALE, globals::SCREEN_HEIGHT*globals::SPRITE_SCALE,
 		0, &window_, &renderer_);
 	SDL_SetWindowTitle(window_, "NumberDetector");
+	SDL_ShowCursor(SDL_DISABLE);
 }
 
 Graphics::~Graphics() {

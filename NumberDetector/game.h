@@ -2,10 +2,12 @@
 #define GAME_H_
 
 #include <algorithm>?
+#include <vector>
 
 #include "graphics.h"
 #include "input.h"
 #include "sprite.h"
+#include "text.h"
 
 class Game {
 public:
@@ -20,7 +22,13 @@ private:
 	void drawCanvas(SDL_Renderer* renderer);
 	void update(float elapsedTime);
 
-	int canvas_[28][28];
+	bool collectingData_;
+
+	int canvasNum_;
+	Text* numRequestLine_;
+
+	int** canvas_;
+	std::vector<int**> canvases_;
 	//Sprite* brushOutline_;
 };
 
