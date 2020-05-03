@@ -8,6 +8,7 @@ Game::Game() {
 		std::cout << TTF_GetError() << std::endl;
 		SDL_Quit();
 	}
+	srand(time(0)); 
 
 	gameLoop();
 }
@@ -103,17 +104,18 @@ void Game::gameLoop() {
 
 		//Print canvases_ to the console
 		if (input.wasKeyPressed(SDL_SCANCODE_S)) {
-			std::cout << "\n________________________________________________________\n";
+			std::cout << "\n __________________________________________________________\n";
 			for(int v = 0; v < canvases_.size(); ++v){
-				for (int i = 0; i < 28; ++i) {
-					std::cout << "|";
+				for (int i = -1; i < 28; ++i) {
+					std::cout << "| ";
 					for (int j = 0; j < 28; ++j) {
-						std::cout << (canvases_[v][i][j] == 0 ? " " : "@") << " ";
+						std::cout << (i == -1 || canvases_[v][i][j] == 0  ? "  " : "[]") << (j == 27 ? "" : "");
 					}
-					std::cout << "|\n";
+					std::cout << " |\n";
 				}
-				std::cout << "|________________________________________________________" << (v == canvases_.size()-1 ? "|" : "");
+				std::cout << "|__________________________________________________________|\n";
 			}
+			std::cout << std::endl;
 		}
 
 		//Exit the program
@@ -153,7 +155,7 @@ void Game::drawBackground(SDL_Renderer* renderer) {
 
 	//Drawing space outline
 	SDL_Rect outline; outline.x = 2*globals::SPRITE_SCALE-1; outline.y = 2*globals::SPRITE_SCALE-1; 
-							outline.w = (28*globals::SPRITE_SCALE)+3; outline.h = (28*globals::SPRITE_SCALE)+3;
+							outline.w = (28*globals::SPRITE_SCALE)+2; outline.h = (28*globals::SPRITE_SCALE)+2;
 	SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
 	SDL_RenderDrawRect(renderer, &outline);
 }

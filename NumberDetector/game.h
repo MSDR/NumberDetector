@@ -2,6 +2,7 @@
 #define GAME_H_
 
 #include <algorithm>?
+#include <time.h>
 #include <vector>
 
 #include "graphics.h"
