@@ -8,7 +8,10 @@ Game::Game() {
 		std::cout << TTF_GetError() << std::endl;
 		SDL_Quit();
 	}
+
 	srand(time(0)); 
+
+	cnn_ = CNN(8);
 
 	gameLoop();
 }
@@ -29,21 +32,19 @@ void Game::gameLoop() {
 
 	//brushOutline_ = new Sprite(graphics, "Images/BrushOutline.png", 0, 0, 92, 92); 
 
+	for (int i = 0; i < 28; ++i) {
+		canvas_.push_back(std::vector<double>());
+		for (int j = 0; j < 28; ++j) {
+			canvas_[i].push_back(-0.5);
+		}
+	}
+
 	//Set up number request text
 	collectingData_ = true;
 	canvasNum_ = std::rand() % 10;
 	numRequestLine_ = new Text();
 	numRequestLine_->loadFont("Assets/Pixel NES.ttf", 2*globals::SPRITE_SCALE);
 	numRequestLine_->update(graphics, "Draw a " + std::to_string(canvasNum_), { 0, 0, 0, 255 });
-
-	//Initialize an empty canvas_
-	canvas_ = new int*[28];
-	for (int i = 0; i < 28; ++i) {
-		canvas_[i] = new int[28];
-		for (int j = 0; j < 28; ++j) {
-			canvas_[i][j] = 0;
-		}
-	}
 
 	//Start game loop
 	while (true) {
@@ -71,7 +72,7 @@ void Game::gameLoop() {
 			for (int i = cy; i < cy + 3; ++i) {
 				for (int j = cx; j < cx + 3; ++j) {
 					if(j <= 27 && i <= 27 && j >= 0 && i >= 0) 
-						canvas_[i][j] = 1;
+						canvas_[i][j] = 0.5;
 				}
 			}
 		}
@@ -80,19 +81,19 @@ void Game::gameLoop() {
 		if (input.wasKeyPressed(SDL_SCANCODE_Z) || input.wasKeyPressed(SDL_SCANCODE_BACKSPACE)) {
 			for (int i = 0; i < 28; ++i) {
 				for (int j = 0; j < 28; ++j) {
-					canvas_[i][j] = 0;
+					canvas_[i][j] = -0.5;
 				}
 			}
 		}
 
 		//Submit a canvas
 		if (input.wasKeyPressed(SDL_SCANCODE_E) || input.wasKeyPressed(SDL_SCANCODE_RETURN)) {
-			int** c = new int*[28];
+			matrix c;
 			for (int i = 0; i < 28; ++i) {
-				c[i] = new int[28];
+				c.push_back(std::vector<double>());
 				for (int j = 0; j < 28; ++j) {
-					c[i][j] = canvas_[i][j];
-					canvas_[i][j] = 0;
+					c[i].push_back(canvas_[i][j]);
+					canvas_[i][j] = -0.5;
 				}
 			}
 			canvases_.push_back(c);
@@ -109,13 +110,18 @@ void Game::gameLoop() {
 				for (int i = -1; i < 28; ++i) {
 					std::cout << "| ";
 					for (int j = 0; j < 28; ++j) {
-						std::cout << (i == -1 || canvases_[v][i][j] == 0  ? "  " : "[]") << (j == 27 ? "" : "");
+						std::cout << (i == -1 || canvases_[v][i][j] == -0.5  ? "  " : "[]") << (j == 27 ? "" : ""); //should only be -0.5 exactly if manually set
 					}
 					std::cout << " |\n";
 				}
 				std::cout << "|__________________________________________________________|\n";
 			}
 			std::cout << std::endl;
+		}
+
+		//Pass current canvas forward through the CNN
+		if (input.wasKeyPressed(SDL_SCANCODE_F)) {
+			cnn_.forward(canvas_);
 		}
 
 		//Exit the program
@@ -213,7 +219,7 @@ void Game::drawCanvas(SDL_Renderer* renderer) {
 		//std::cout << std::endl;
 		for (int j = 0; j < 28; ++j) {
 			//std::cout << canvas_[i][j] << " ";
-			if (canvas_[i][j] > 0) {
+			if (canvas_[i][j] != -0.5) {
 				r.x = 2 * globals::SPRITE_SCALE + j * globals::SPRITE_SCALE;
 				r.y = 2 * globals::SPRITE_SCALE + i * globals::SPRITE_SCALE;
 				SDL_RenderFillRect(renderer, &r);

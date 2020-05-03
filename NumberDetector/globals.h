@@ -3,11 +3,15 @@
 #ifndef  GLOBALS_H_
 #define GLOBALS_H_
 
+#include <vector>
+
 namespace globals {
 	const int SCREEN_WIDTH = 32;
 	const int SCREEN_HEIGHT = 42;
 
 	const int SPRITE_SCALE = 15;
+
+	typedef std::vector<std::vector<double>> matrix;
 }
 
 namespace sides {

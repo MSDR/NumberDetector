@@ -5,10 +5,13 @@
 #include <time.h>
 #include <vector>
 
+#include "cnn.h"
 #include "graphics.h"
 #include "input.h"
 #include "sprite.h"
 #include "text.h"
+
+using globals::matrix;
 
 class Game {
 public:
@@ -17,6 +20,8 @@ public:
 
 private:
 	void gameLoop();
+
+	CNN cnn_;
 
 	void draw(Graphics &graphics);
 	void drawBackground(SDL_Renderer* renderer);
@@ -28,9 +33,8 @@ private:
 
 	int canvasNum_;
 	Text* numRequestLine_;
-
-	int** canvas_;
-	std::vector<int**> canvases_;
+	matrix canvas_;
+	std::vector<matrix> canvases_;
 	//Sprite* brushOutline_;
 };
 
