@@ -30,6 +30,7 @@ private:
 	void update(float elapsedTime);
 
 	bool collectingData_;
+	bool emptyCanvas_;
 
 	int canvasNum_;
 	Text* numRequestLine_;

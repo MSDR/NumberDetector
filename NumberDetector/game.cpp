@@ -39,6 +39,7 @@ void Game::gameLoop() {
 		}
 	}
 
+	emptyCanvas_ = true;
 	//Set up number request text
 	collectingData_ = true;
 	canvasNum_ = std::rand() % 10;
@@ -64,6 +65,7 @@ void Game::gameLoop() {
 
 		//Draw onto canvas
 		if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) || input.isKeyHeld(SDL_SCANCODE_D)) {
+			emptyCanvas_ = false;
 			int mouseX = 0;
 			int mouseY = 0;
 			SDL_GetMouseState(&mouseX, &mouseY);
@@ -79,6 +81,7 @@ void Game::gameLoop() {
 		
 		//Clear canvas
 		if (input.wasKeyPressed(SDL_SCANCODE_Z) || input.wasKeyPressed(SDL_SCANCODE_BACKSPACE)) {
+			emptyCanvas_ = true;
 			for (int i = 0; i < 28; ++i) {
 				for (int j = 0; j < 28; ++j) {
 					canvas_[i][j] = -0.5;
@@ -87,7 +90,8 @@ void Game::gameLoop() {
 		}
 
 		//Submit a canvas
-		if (input.wasKeyPressed(SDL_SCANCODE_E) || input.wasKeyPressed(SDL_SCANCODE_RETURN)) {
+		if (!emptyCanvas_ && (input.wasKeyPressed(SDL_SCANCODE_E) || input.wasKeyPressed(SDL_SCANCODE_RETURN))) {
+			emptyCanvas_ = true;
 			matrix c;
 			for (int i = 0; i < 28; ++i) {
 				c.push_back(std::vector<double>());
