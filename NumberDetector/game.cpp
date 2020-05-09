@@ -125,7 +125,13 @@ void Game::gameLoop() {
 
 		//Pass current canvas forward through the CNN
 		if (input.wasKeyPressed(SDL_SCANCODE_F)) {
-			cnn_.forward(canvas_);
+			std::vector<double> result = cnn_.forward(canvas_);
+			int guess = 0;
+			for (int i = 0; i < result.size(); ++i) {
+				guess = result[i] > result[guess] ? i : guess;
+				std::cout << std::endl << i << " | Confidence: " << result[i];
+			}
+			std::cout << "\nGuess: " << guess << "\nLoss: " << -std::log(result[canvasNum_]) << std::endl;
 		}
 
 		//Exit the program

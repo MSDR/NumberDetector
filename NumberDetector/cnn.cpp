@@ -89,55 +89,6 @@ std::vector<matrix> CNN::poolMax(std::vector<matrix> &input) {
 }
 
 
-CNN::CNN(int numConvFilters) {
-	conv_ = Convolution(numConvFilters);
-	sMax_ = SoftMax(10);
-	//conv_.printFilters();
-}
-
-
-CNN::~CNN() {
-}
-
-double* CNN::forward(matrix &canvas) {
-	std::vector<matrix> conv = conv_.forward(canvas);
-	
-	std::cout << "After convolution:";
-	for (int v = 0; v < conv.size(); ++v) {
-		std::cout << "\n_____________________________";
-		for (int i = 0; i < 26; ++i) {
-			std::cout << std::endl;
-			for (int j = 0; j < 26; ++j) {
-				std::cout << (conv[v][i][j] > 0 ? "  " : " ") << std::to_string(conv[v][i][j]);
-			}
-		}
-	}
-	std::cout << "\n_____________________________\n";
-	
-	std::vector<matrix> pool = poolMax(conv);
-	
-	std::cout << "After pooling:";
-	for (int v = 0; v < pool.size(); ++v) {
-		std::cout << "\n_____________________________";
-		for (int i = 0; i < 13; ++i) {
-			std::cout << std::endl;
-			for (int j = 0; j < 13; ++j) {
-				std::cout << (pool[v][i][j] > 0 ? "  " : " ") << std::to_string(pool[v][i][j]);
-			}
-		}
-	}
-	std::cout << "\n_____________________________\n";
-	
-
-	std::vector<double> out = sMax_.forward(pool);
-
-	std::cout << "After softmax: ";
-	for (int i = 0; i < out.size(); ++i)
-		std::cout << out[i] << " ";
-	std::cout << std::endl;
-	return nullptr;
-}
-
 SoftMax::SoftMax(int numOut) {
 	std::default_random_engine gen;
 	std::normal_distribution<double> dist(0, 1);
@@ -183,5 +134,56 @@ std::vector<double> SoftMax::forward(std::vector<matrix> input) {
 	for (int i = 0; i < out.size(); ++i) {
 		out[i] = out[i] / outSum;
 	}
+	return out;
+}
+
+
+CNN::CNN(int numConvFilters) {
+	conv_ = Convolution(numConvFilters);
+	sMax_ = SoftMax(10);
+	//conv_.printFilters();
+}
+
+
+CNN::~CNN() {
+}
+
+std::vector<double> CNN::forward(matrix &canvas) {
+	std::vector<matrix> conv = conv_.forward(canvas);
+	/*
+	std::cout << "After convolution:";
+	for (int v = 0; v < conv.size(); ++v) {
+		std::cout << "\n_____________________________";
+		for (int i = 0; i < 26; ++i) {
+			std::cout << std::endl;
+			for (int j = 0; j < 26; ++j) {
+				std::cout << (conv[v][i][j] > 0 ? "  " : " ") << std::to_string(conv[v][i][j]);
+			}
+		}
+	}
+	std::cout << "\n_____________________________\n";
+	*/
+	std::vector<matrix> pool = poolMax(conv);
+	/*
+	std::cout << "After pooling:";
+	for (int v = 0; v < pool.size(); ++v) {
+		std::cout << "\n_____________________________";
+		for (int i = 0; i < 13; ++i) {
+			std::cout << std::endl;
+			for (int j = 0; j < 13; ++j) {
+				std::cout << (pool[v][i][j] > 0 ? "  " : " ") << std::to_string(pool[v][i][j]);
+			}
+		}
+	}
+	std::cout << "\n_____________________________\n";
+	*/
+
+	std::vector<double> out = sMax_.forward(pool);
+	/*
+	std::cout << "After softmax: ";
+	for (int i = 0; i < out.size(); ++i)
+		std::cout << out[i] << " ";
+	std::cout << std::endl;
+	*/
 	return out;
 }

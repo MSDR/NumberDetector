@@ -40,7 +40,7 @@ public:
 	CNN(int numConvFilters = 1);
 	~CNN();
 
-	double* forward(matrix &canvas);
+	std::vector<double> forward(matrix &canvas);
 
 
 private:
