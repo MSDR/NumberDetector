@@ -214,10 +214,6 @@ std::vector<double> SoftMax::backProp(std::vector<double>& dL_dOut, double learn
 		}
 		std::vector<double> dL_dInput = matrixMultiplication(dt_dInput, dL_dt)[0];
 
-		std::cout << "dL_dw: " << dL_dw.size() << "x" << dL_dw[0].size() << std::endl;
-		std::cout << "dL_db: " << dL_db.size() << std::endl;
-		std::cout << "dL_dInput: " << dL_dInput.size() << std::endl;
-
 		//Update weights/biases, produce output
 
 		//update weights

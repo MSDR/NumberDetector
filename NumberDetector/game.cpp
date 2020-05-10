@@ -40,8 +40,10 @@ void Game::gameLoop() {
 	}
 
 	emptyCanvas_ = true;
-	//Set up number request text
 	collectingData_ = true;
+	guess_ = -1;
+
+	//Set up number request text
 	canvasNum_ = std::rand() % 10;
 	numRequestLine_ = new Text();
 	numRequestLine_->loadFont("Assets/Pixel NES.ttf", 2*globals::SPRITE_SCALE);
@@ -62,6 +64,9 @@ void Game::gameLoop() {
 				return;
 			}
 		}
+
+		if (input.wasKeyPressed(SDL_SCANCODE_RSHIFT))
+			collectingData_ = !collectingData_;
 
 		//Draw onto canvas
 		if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) || input.isKeyHeld(SDL_SCANCODE_D)) {
@@ -87,6 +92,9 @@ void Game::gameLoop() {
 					canvas_[i][j] = -0.5;
 				}
 			}
+
+			numRequestLine_->update(graphics, "Draw a " + (collectingData_ ? std::to_string(canvasNum_) : "number"), { 0, 0, 0, 255 });
+			guess_ = -1;
 		}
 
 		//Submit a canvas
@@ -103,8 +111,9 @@ void Game::gameLoop() {
 			canvases_.push_back(c);
 
 			//Reset number request
-			canvasNum_ = 1;// std::rand() % 10; CHANGE THIS MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMm
-			numRequestLine_->update(graphics, "Draw a " + std::to_string(canvasNum_), { 0, 0, 0, 255 });
+			canvasNum_ = std::rand() % 2; //CHANGE THIS TO 10 ------------------------------------------------------------------------------------------
+			numRequestLine_->update(graphics, "Draw a " + (collectingData_ ? std::to_string(canvasNum_) : "number"), { 0, 0, 0, 255 });
+			guess_ = -1;
 		}
 
 		//Print canvases_ to the console
@@ -126,6 +135,8 @@ void Game::gameLoop() {
 		//Pass current canvas forward through the CNN
 		if (input.wasKeyPressed(SDL_SCANCODE_F)) {
 			cnnPass();
+			numRequestLine_->update(graphics, "I guess " + std::to_string(guess_));
+			draw(graphics);
 		}
 
 		//Exit the program
@@ -150,29 +161,33 @@ void Game::cnnPass() {
 		guess = result[i] > result[guess] ? i : guess;
 		std::cout << std::endl << i << " | Confidence: " << result[i];
 	}
-	std::cout << "\nGuess: " << guess << "\nLoss: " << -std::log(result[canvasNum_]) << std::endl;
+	guess_ = guess;
+	std::cout << "\nGuess: " << guess << std::endl;
 
-	//Calculate gradient for backpropagation
-	std::vector<double> gradient(10, 0);
-	gradient[canvasNum_] = -(1 / result[canvasNum_]);
+	if(collectingData_){
+		std::cout << "Loss: " << -std::log(result[canvasNum_]) << std::endl;
 
-	//Backwards pass (adjusting weights)
-	cnn_.backProp(gradient, 0.005);
+		//Calculate gradient for backpropagation
+		std::vector<double> gradient(10, 0);
+		gradient[canvasNum_] = -(1 / result[canvasNum_]);
+
+		//Backwards pass (adjusting weights)
+		cnn_.backProp(gradient, 0.005);
+	}
 }
 
 void Game::draw(Graphics &graphics) {
 	graphics.clear();
+
 	drawBackground(graphics.getRenderer());
 	drawCanvas(graphics.getRenderer());
+
 	int mouseX, mouseY = 0;
 	SDL_GetMouseState(&mouseX, &mouseY);
 	drawBrushOutline(graphics.getRenderer(), mouseX, mouseY);
 	//std::cout << mouseX-mouseX%globals::SPRITE_SCALE << " " << mouseY-mouseY%globals::SPRITE_SCALE << std::endl;
-
-
-	//brushOutline_->draw(graphics, mouseX-mouseX%globals::SPRITE_SCALE, mouseY-mouseY%globals::SPRITE_SCALE);
 	
-	//Draw text to request a number
+	//Draw text
 	numRequestLine_->draw(graphics, 2 * globals::SPRITE_SCALE - 1, 30 * globals::SPRITE_SCALE);
 
 	graphics.flip();

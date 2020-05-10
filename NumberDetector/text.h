@@ -12,7 +12,7 @@ public:
 
 	void setAlpha(Uint8 alpha);
 
-	bool update(Graphics &graphics, std::string text, SDL_Color textColor = { 255, 255, 255, 0xFF });
+	bool update(Graphics &graphics, std::string text, SDL_Color textColor = { 0, 0, 0, 255 });
 
 //#ifdef _SDL_TTF_H		
 	void draw(Graphics &graphics, int x, int y, double angle = 0.0, SDL_RendererFlip flip = SDL_FLIP_NONE, SDL_Rect* clip = NULL, SDL_Point* center = NULL);

@@ -33,6 +33,7 @@ private:
 	bool collectingData_;
 	bool emptyCanvas_;
 
+	int guess_;
 	int canvasNum_;
 	Text* numRequestLine_;
 	matrix canvas_;
