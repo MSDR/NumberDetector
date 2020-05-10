@@ -28,20 +28,24 @@ class SoftMax {
 public:
 	SoftMax(int numOut = 10);
 
-	std::vector<double> forward(std::vector<matrix> input);
-
+	std::vector<double> forward(std::vector<matrix> &input);
+	std::vector<double> backProp(std::vector<double> &dL_dOut, double learnRate);
 private:
 	matrix weights_;
 	std::vector<double> biases_;
+
+	std::vector<double> inputCache_;
+	std::vector<double> totalsCache_;
+	double totalSumCache_;
 };
 
 class CNN {
 public:
-	CNN(int numConvFilters = 1);
+	CNN(int numConvFilters = 8, int numSMaxNodes = 10);
 	~CNN();
 
 	std::vector<double> forward(matrix &canvas);
-
+	void backProp(std::vector<double> &dl_dOut, double learnRate = 0.005); 
 
 private:
 	Convolution conv_;

@@ -1,5 +1,44 @@
 #include "cnn.h"
 
+//Performs an element-wise multiplication of matrices m1, m2, and sums the products.
+//rejects if dim(m1) != dim(m2)
+double dotProduct(matrix &a, matrix &b) {
+	if (a.size() != b.size() || a.size() == 0 || b.size() == 0 || a[0].size() != b[0].size()) return 0;
+	double sum = 0.0;
+	for (int i = 0; i < a.size(); ++i) {
+		for (int j = 0; j < a[i].size(); ++j) {
+			sum += a[i][j] * b[i][j];
+		}
+	}
+	return sum;
+}
+
+matrix matrixMultiplication(matrix &a, matrix &b) {
+	matrix o;
+
+	//a | m x n
+	//b | n x p
+	//o | m x p
+	if (a.size() == 0 || b.size() == 0 || a[0].size() == 0 || b[0].size() == 0 || a[0].size() != b.size()) { //size check
+		std::cout << "Matrix multiplication size misalignment\n";
+		std::cout << a.size() << " " << a[0].size() << " " << b.size() << " " << b[0].size() << "\n";
+		return o;
+	}
+
+	for (int m = 0; m < a.size(); ++m) {
+		o.push_back(std::vector<double>());
+		for (int p = 0; p < b[0].size(); ++p) {
+			double sum = 0.0;
+			for (int n = 0; n < a[0].size(); ++n) {
+				sum += a[m][n] * b[n][p];
+			}
+			o[m].push_back(sum);
+		}
+	}
+
+	return o;
+}
+
 Convolution::Convolution(int numFilters)  : numFilters_(numFilters) {
 	std::default_random_engine gen;
 	std::normal_distribution<double> dist(0, 1);
@@ -29,19 +68,6 @@ void Convolution::printFilters() {
 		}
 	}
 	std::cout << "\n_____________________________\n";
-}
-
-//Performs an element-wise multiplication of matrices m1, m2, and sums the products.
-//rejects if dim(m1) != dim(m2)
-double dotProduct(matrix &m1, matrix &m2) {
-	if (m1.size() != m2.size() || m1.size() == 0 || m2.size() == 0 || m1[0].size() != m2[0].size()) return 0;
-	double sum = 0.0;
-	for (int i = 0; i < m1.size(); ++i) {
-		for (int j = 0; j < m1[i].size(); ++j) {
-			sum += m1[i][j] * m2[i][j];
-		}
-	}
-	return sum;
 }
 
 std::vector<matrix> Convolution::forward(matrix &canvas) {
@@ -105,9 +131,13 @@ SoftMax::SoftMax(int numOut) {
 	for (int i = 0; i < numOut; ++i) {
 		biases_.push_back(0);
 	}
+	std::cout << "stop";
 }
 
-std::vector<double> SoftMax::forward(std::vector<matrix> input) {
+std::vector<double> SoftMax::forward(std::vector<matrix> &input) {
+	inputCache_.clear();
+	totalsCache_.clear();
+
 	//Flatten input
 	std::vector<double> flatInput;
 	for (int v = 0; v < input.size(); ++v) {
@@ -118,37 +148,108 @@ std::vector<double> SoftMax::forward(std::vector<matrix> input) {
 		}
 	}
 
+	inputCache_ = flatInput;
+
 	std::vector<double> out;
-	double outSum = 0.0;
+	totalSumCache_ = 0.0;
 	for (int i = 0; i < weights_[0].size(); ++i) {
-		double sum = 0.0;
+		double total = 0.0;
 		for (int j = 0; j < weights_.size(); ++j) {
-			sum += flatInput[j] * weights_[j][i]; //(1x1352 flatInput)x(1352x10 weights_)
+			total += flatInput[j] * weights_[j][i]; //(1x1352 flatInput)x(1352x10 weights_)
 		}
-		sum += biases_[i]; //add biases_
-		sum = std::exp(sum);
-		out.push_back(sum);
-		outSum += sum;
+		total += biases_[i]; //add biases_
+		total = std::exp(total);
+		out.push_back(total);
+		totalsCache_.push_back(total);
+		totalSumCache_ += total;
 	}
 	//apply softmax formula: https://victorzhou.com/blog/softmax/
 	for (int i = 0; i < out.size(); ++i) {
-		out[i] = out[i] / outSum;
+		out[i] = out[i] / totalSumCache_;
 	}
 	return out;
 }
 
+std::vector<double> SoftMax::backProp(std::vector<double>& dL_dOut, double learnRate) {
+	for (int c = 0; c < dL_dOut.size(); ++c) {
+		if (dL_dOut[c] == 0) //will result in no change if not on correct value
+			continue;
 
-CNN::CNN(int numConvFilters) {
-	conv_ = Convolution(numConvFilters);
-	sMax_ = SoftMax(10);
-	//conv_.printFilters();
+		//Calculate intermediary gradients
+		std::vector<double> dOut_dt;
+		for (int k = 0; k < dL_dOut.size(); ++k) {
+			if (k == c) {
+				dOut_dt.push_back(
+					(totalsCache_[c] * (totalSumCache_ - totalsCache_[c])) /
+					(totalSumCache_*totalSumCache_)
+				);
+			} else {
+				dOut_dt.push_back(
+					-(totalsCache_[c]*totalsCache_[c]) / 
+					 (totalSumCache_*totalSumCache_)
+				);
+			}
+		}
+
+		matrix dL_dt; //1x10
+		dL_dt.push_back(std::vector<double>());
+		for (int i = 0; i < dL_dOut.size(); ++i) {
+			dL_dt[0].push_back(dL_dOut[i] * dOut_dt[i]);
+		}
+
+		matrix dt_dw; //1352x1
+		for (int i = 0; i < inputCache_.size(); ++i)
+			dt_dw.push_back(std::vector<double>({ inputCache_[i] }));
+
+		//1352x10
+		matrix dt_dInput = weights_;
+
+		//Calculate final gradients
+		matrix dL_dw = matrixMultiplication(dt_dw, dL_dt);
+		std::vector<double> dL_db(dOut_dt); //dL_db = dOut_dt*dt_db = dOut_dt*1
+
+		dL_dt.clear(); //10x1
+		for (int i = 0; i < dL_dOut.size(); ++i) {
+			dL_dt.push_back(std::vector<double>({dL_dOut[i] * dOut_dt[i]}));
+		}
+		std::vector<double> dL_dInput = matrixMultiplication(dt_dInput, dL_dt)[0];
+
+		std::cout << "dL_dw: " << dL_dw.size() << "x" << dL_dw[0].size() << std::endl;
+		std::cout << "dL_db: " << dL_db.size() << std::endl;
+		std::cout << "dL_dInput: " << dL_dInput.size() << std::endl;
+
+		//Update weights/biases, produce output
+
+		//update weights
+		for (int i = 0; i < weights_.size(); ++i) {
+			for (int j = 0; j < weights_[i].size(); ++j) {
+				weights_[i][j] -= learnRate * dL_dw[i][j];
+			}
+		}
+
+		//update biases
+		for (int i = 0; i < biases_.size(); ++i) {
+			biases_[i] -= learnRate * dL_db[i];
+		}
+
+		//implement output
+	}
+	return std::vector<double>();
 }
 
+
+CNN::CNN(int numConvFilters, int numSMaxNodes) {
+	conv_ = Convolution(numConvFilters);
+	sMax_ = SoftMax(numSMaxNodes);
+	//conv_.printFilters();
+}
 
 CNN::~CNN() {
 }
 
 std::vector<double> CNN::forward(matrix &canvas) {
+	//Takes the canvas and performs convolution
+	//28x28 -> 26x26x8
 	std::vector<matrix> conv = conv_.forward(canvas);
 	/*
 	std::cout << "After convolution:";
@@ -163,6 +264,9 @@ std::vector<double> CNN::forward(matrix &canvas) {
 	}
 	std::cout << "\n_____________________________\n";
 	*/
+
+	//Pools together the convolution's outputs via max value in a 2x2 area
+	//26x26x8 -> 13x13x8
 	std::vector<matrix> pool = poolMax(conv);
 	/*
 	std::cout << "After pooling:";
@@ -178,6 +282,8 @@ std::vector<double> CNN::forward(matrix &canvas) {
 	std::cout << "\n_____________________________\n";
 	*/
 
+	//Performs softmax on the pooling layer's output
+	//13x13x8 -> 10, each node representing the confidence the cnn has in what number the drawing is
 	std::vector<double> out = sMax_.forward(pool);
 	/*
 	std::cout << "After softmax: ";
@@ -186,4 +292,8 @@ std::vector<double> CNN::forward(matrix &canvas) {
 	std::cout << std::endl;
 	*/
 	return out;
+}
+
+void CNN::backProp(std::vector<double> &dL_dOut, double learnRate) {
+	std::vector<double> dL_dPool = sMax_.backProp(dL_dOut, learnRate);
 }

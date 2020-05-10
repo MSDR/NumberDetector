@@ -11,7 +11,7 @@ Game::Game() {
 
 	srand(time(0)); 
 
-	cnn_ = CNN(8);
+	cnn_ = CNN(8, 10);
 
 	gameLoop();
 }
@@ -103,7 +103,7 @@ void Game::gameLoop() {
 			canvases_.push_back(c);
 
 			//Reset number request
-			canvasNum_ = std::rand() % 10;
+			canvasNum_ = 1;// std::rand() % 10; CHANGE THIS MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMm
 			numRequestLine_->update(graphics, "Draw a " + std::to_string(canvasNum_), { 0, 0, 0, 255 });
 		}
 
@@ -125,13 +125,7 @@ void Game::gameLoop() {
 
 		//Pass current canvas forward through the CNN
 		if (input.wasKeyPressed(SDL_SCANCODE_F)) {
-			std::vector<double> result = cnn_.forward(canvas_);
-			int guess = 0;
-			for (int i = 0; i < result.size(); ++i) {
-				guess = result[i] > result[guess] ? i : guess;
-				std::cout << std::endl << i << " | Confidence: " << result[i];
-			}
-			std::cout << "\nGuess: " << guess << "\nLoss: " << -std::log(result[canvasNum_]) << std::endl;
+			cnnPass();
 		}
 
 		//Exit the program
@@ -144,6 +138,26 @@ void Game::gameLoop() {
 		LAST_UPDATE_TIME = CURRENT_TIME_MILLIS;
 		draw(graphics);
 	}//end game loop
+}
+
+void Game::cnnPass() {
+	//Forward pass
+	std::vector<double> result = cnn_.forward(canvas_);
+
+	//Print results
+	int guess = 0;
+	for (int i = 0; i < result.size(); ++i) {
+		guess = result[i] > result[guess] ? i : guess;
+		std::cout << std::endl << i << " | Confidence: " << result[i];
+	}
+	std::cout << "\nGuess: " << guess << "\nLoss: " << -std::log(result[canvasNum_]) << std::endl;
+
+	//Calculate gradient for backpropagation
+	std::vector<double> gradient(10, 0);
+	gradient[canvasNum_] = -(1 / result[canvasNum_]);
+
+	//Backwards pass (adjusting weights)
+	cnn_.backProp(gradient, 0.005);
 }
 
 void Game::draw(Graphics &graphics) {
