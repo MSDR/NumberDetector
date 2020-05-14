@@ -2,6 +2,8 @@
 #define GAME_H_
 
 #include <algorithm>?
+#include <fstream>
+#include <string>
 #include <time.h>
 #include <vector>
 
@@ -22,13 +24,17 @@ private:
 	void gameLoop();
 
 	CNN cnn_;
-	void cnnPass();
+	void cnnPass(bool printStats = true);
 
 	void draw(Graphics &graphics);
 	void drawBackground(SDL_Renderer* renderer);
 	void drawBrushOutline(SDL_Renderer* renderer, int mouseX, int mouseY);
 	void drawCanvas(SDL_Renderer* renderer);
 	void update(float elapsedTime);
+
+	std::string filepath_;
+	void writeData(std::string &filepath, bool append);
+	void trainFromData(std::string &filepath, int epochs = -1);
 
 	bool collectingData_;
 	bool emptyCanvas_;
@@ -37,7 +43,7 @@ private:
 	int canvasNum_;
 	Text* numRequestLine_;
 	matrix canvas_;
-	std::vector<matrix> canvases_;
+	std::vector<std::pair<matrix, int> > canvases_;
 	//Sprite* brushOutline_;
 };
 

@@ -131,7 +131,6 @@ SoftMax::SoftMax(int numOut) {
 	for (int i = 0; i < numOut; ++i) {
 		biases_.push_back(0);
 	}
-	std::cout << "stop";
 }
 
 std::vector<double> SoftMax::forward(std::vector<matrix> &input) {
