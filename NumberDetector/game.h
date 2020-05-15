@@ -35,6 +35,7 @@ private:
 	std::string filepath_;
 	void writeData(std::string &filepath, bool append);
 	void trainFromData(std::string &filepath, int epochs = -1);
+	void loadData(std::string &filepath);
 
 	bool collectingData_;
 	bool emptyCanvas_;

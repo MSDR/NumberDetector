@@ -172,6 +172,9 @@ void Game::gameLoop() {
 		if (input.wasKeyPressed(SDL_SCANCODE_T))
 			trainFromData(filepath_);
 
+		if (input.wasKeyPressed(SDL_SCANCODE_L))
+			loadData(filepath_);
+
 		const int CURRENT_TIME_MILLIS = SDL_GetTicks();
 		int ELAPSED_TIME_MILLIS = CURRENT_TIME_MILLIS - LAST_UPDATE_TIME;
 		update(ELAPSED_TIME_MILLIS);
@@ -360,4 +363,25 @@ void Game::trainFromData(std::string &filepath, int epochs) {
 			canvas_[i].push_back(-0.5);
 		}
 	}
+}
+
+void Game::loadData(std::string &filepath) {
+	std::ifstream reader;
+	reader.open(filepath_, std::fstream::in);
+
+	std::string line = "This is another meaningless string.";
+
+	while (line != "") {
+		std::getline(reader, line);
+		if (line[0] == '_') { //Run canvas through CNN
+			canvases_.push_back(std::make_pair(matrix(), line[1]-48));
+		} else {
+			canvases_.back().first.push_back(std::vector<double>());
+			for (int i = 0; i < line.length(); ++i) {
+				canvases_.back().first.back().push_back(line[i] - 48.5);
+			}
+		}
+	}
+
+	std::cout << "Data from " << filepath << " has been loaded into memory.\n";
 }
