@@ -39,7 +39,7 @@ void Game::gameLoop() {
 		}
 	}
 
-	filepath_ = "small0-9.txt";
+	filepath_ = "large0-9_BEFORECENTERINGLAYER.txt";
 	bool confirmingDataClear = false;
 
 	emptyCanvas_ = true;
@@ -169,8 +169,12 @@ void Game::gameLoop() {
 			}
 		}
 
-		if (input.wasKeyPressed(SDL_SCANCODE_T))
+		if (input.wasKeyPressed(SDL_SCANCODE_T)){
+			bool cd = collectingData_;
+			collectingData_ = true;
 			trainFromData(filepath_);
+			collectingData_ = cd;
+		}
 
 		if (input.wasKeyPressed(SDL_SCANCODE_L))
 			loadData(filepath_);
@@ -330,6 +334,10 @@ void Game::writeData(std::string &filepath, bool append) {
 void Game::trainFromData(std::string &filepath, int epochs) {
 	std::ifstream reader;
 	reader.open(filepath_, std::fstream::in);
+	if (!reader.good()) {
+		std::cout << std::endl << "Training failed. Invalid filepath.\n";
+		return;
+	}
 
 	canvas_.clear();
 	int epochCounter = 0;

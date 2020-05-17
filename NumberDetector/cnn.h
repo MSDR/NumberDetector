@@ -51,6 +51,8 @@ private:
 	Convolution conv_;
 	SoftMax sMax_;
 	std::vector<matrix> poolMax(std::vector<matrix> &input);
+
+	void centerDrawing(matrix &canvas, matrix* out);
 };
 
 #endif

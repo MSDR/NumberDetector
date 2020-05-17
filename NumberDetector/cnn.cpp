@@ -114,7 +114,6 @@ std::vector<matrix> CNN::poolMax(std::vector<matrix> &input) {
 	return pools;
 }
 
-
 SoftMax::SoftMax(int numOut) {
 	std::default_random_engine gen;
 	std::normal_distribution<double> dist(0, 1);
@@ -245,7 +244,10 @@ CNN::~CNN() {
 std::vector<double> CNN::forward(matrix &canvas) {
 	//Takes the canvas and performs convolution
 	//28x28 -> 26x26x8
-	std::vector<matrix> conv = conv_.forward(canvas);
+	matrix c;
+	centerDrawing(canvas, &c);
+	std::vector<matrix> conv = conv_.forward(c);
+	
 	/*
 	std::cout << "After convolution:";
 	for (int v = 0; v < conv.size(); ++v) {
@@ -291,4 +293,43 @@ std::vector<double> CNN::forward(matrix &canvas) {
 
 void CNN::backProp(std::vector<double> &dL_dOut, double learnRate) {
 	std::vector<double> dL_dPool = sMax_.backProp(dL_dOut, learnRate);
+}
+
+void CNN::centerDrawing(matrix &canvas, matrix* out) {
+	int maxY = 0; int maxX = 0;
+	int minY = 27; int minX = 27;
+	int midY = 13;	int midX = 13; //canvas is a 28x28 square
+
+	for (int i = 0; i < canvas.size(); ++i) {
+		(*out).push_back(std::vector<double>());
+		for (int j = 0; j < canvas[0].size(); ++j) {
+			(*out)[i].push_back(-0.5); //Fill c with empty values
+			if (canvas[i][j] > -0.49) {
+				maxY = i > maxY ? i : maxY;
+				maxX = j > maxX ? j : maxX;
+				minY = i < minY ? i : minY;
+				minX = j < minX ? j : minX;
+			}
+		}
+	}
+
+	int dx = (midX - (maxX - minX) / 2);
+	int dy = (midY - (maxY - minY) / 2);
+
+	for (int y = minY; y <= maxY; ++y) {
+		for (int x = minX; x <= maxX; ++x) {
+			(*out)[dy+(y-minY)][dx+(x-minX)] = canvas[y][x];
+		}
+	}
+
+	/*
+	std::cout << "Centered matrix: \n";
+	for (int i = 0; i < (*out).size(); ++i) {
+		std::cout << std::endl;
+		for (int j = 0; j < (*out)[0].size(); ++j) {
+			std::cout << (0.5+(*out)[i][j]);
+		}
+	}
+	std::cout << std::endl;
+	*/
 }
