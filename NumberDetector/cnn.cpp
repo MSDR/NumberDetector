@@ -91,7 +91,8 @@ std::vector<matrix> Convolution::forward(matrix &canvas) {
 	return convases;
 }
 
-std::vector<matrix> CNN::poolMax(std::vector<matrix> &input) {
+std::vector<matrix> Pool::forward(std::vector<matrix> &input) {
+	inputCache_ = std::vector<matrix>(input);
 	std::vector<matrix> pools;
 	for(int f = 0; f < input.size(); ++f) {
 		matrix pool;
@@ -112,6 +113,51 @@ std::vector<matrix> CNN::poolMax(std::vector<matrix> &input) {
 		pools.push_back(pool);
 	}
 	return pools;
+}
+
+std::vector<matrix> Pool::backProp(std::vector<matrix> dL_dSMax) {
+	std::vector<matrix> dL_dPool;
+	for(int f = 0; f < inputCache_.size(); ++f) {
+		matrix pool;
+		for (int i = 0; i < 13; ++i) {
+			pool.push_back(std::vector<double>());
+			pool.push_back(std::vector<double>());
+			for (int j = 0; j < 13; ++j) {
+				double maxInPool = -1.0;
+				for (int im = 0; im < 2; ++im) {
+					//std::cout << std::endl;
+					for (int jm = 0; jm < 2; ++jm) {
+						//std::cout << input[f][i * 2 + im][j * 2 + jm] << " ";
+						maxInPool = maxInPool > inputCache_[f][i*2+im][j*2+jm] ? maxInPool : inputCache_[f][i*2+im][j*2+jm] ;
+					}
+				}
+				for (int im = 0; im < 2; ++im) {
+					//std::cout << std::endl;
+					for (int jm = 0; jm < 2; ++jm) {
+						//std::cout << input[f][i * 2 + im][j * 2 + jm] << " ";
+						if(inputCache_[f][i*2+im][j*2+jm] == maxInPool){
+							pool[i*2+im].push_back(dL_dSMax[f][i][j]);
+						} else {
+							pool[i*2+im].push_back(0.0);
+						}
+					}
+				}
+			}
+		}
+		dL_dPool.push_back(pool);
+	}
+
+	for (int v = 0; v < dL_dPool.size(); ++v) {
+		std::cout << "\n_____________________________";
+		for (int i = 0; i < dL_dPool[v].size(); ++i) {
+			std::cout << std::endl;
+			for (int j = 0; j < dL_dPool[v][i].size(); ++j) {
+				std::cout << (dL_dPool[v][i][j] > 0 ? "  " : " ") << std::to_string(dL_dPool[v][i][j]);
+			}
+		}
+	}
+
+	return dL_dPool;
 }
 
 SoftMax::SoftMax(int numOut) {
@@ -168,7 +214,10 @@ std::vector<double> SoftMax::forward(std::vector<matrix> &input) {
 	return out;
 }
 
-std::vector<double> SoftMax::backProp(std::vector<double>& dL_dOut, double learnRate) {
+std::vector<matrix> SoftMax::backProp(std::vector<double>& dL_dOut, double learnRate) {
+	//13x13x8
+	std::vector<matrix> dL_dInput;
+
 	for (int c = 0; c < dL_dOut.size(); ++c) {
 		if (dL_dOut[c] == 0) //will result in no change if not on correct value
 			continue;
@@ -206,14 +255,6 @@ std::vector<double> SoftMax::backProp(std::vector<double>& dL_dOut, double learn
 		matrix dL_dw = matrixMultiplication(dt_dw, dL_dt);
 		std::vector<double> dL_db(dOut_dt); //dL_db = dOut_dt*dt_db = dOut_dt*1
 
-		dL_dt.clear(); //10x1
-		for (int i = 0; i < dL_dOut.size(); ++i) {
-			dL_dt.push_back(std::vector<double>({dL_dOut[i] * dOut_dt[i]}));
-		}
-		std::vector<double> dL_dInput = matrixMultiplication(dt_dInput, dL_dt)[0];
-
-		//Update weights/biases, produce output
-
 		//update weights
 		for (int i = 0; i < weights_.size(); ++i) {
 			for (int j = 0; j < weights_[i].size(); ++j) {
@@ -226,14 +267,36 @@ std::vector<double> SoftMax::backProp(std::vector<double>& dL_dOut, double learn
 			biases_[i] -= learnRate * dL_db[i];
 		}
 
-		//implement output
+		//Reshaping dL_dt for matrix multiplication
+		dL_dt.clear(); //10x1
+		for (int i = 0; i < dL_dOut.size(); ++i) {
+			dL_dt.push_back(std::vector<double>({dL_dOut[i] * dOut_dt[i]}));
+		}
+
+		//1352x1
+		matrix temp_dL_dInput = matrixMultiplication(dt_dInput, dL_dt);
+
+		//Handles the reshaping of dL_dInput from temp
+		int tCounter = 0;
+		for (int i = 0; i < 8; ++i) {
+			dL_dInput.push_back(matrix());
+			for (int j = 0; j < 13; ++j) {
+				dL_dInput[i].push_back(std::vector<double>());
+				for (int k = 0; k < 13; ++k) {
+					dL_dInput[i][j].push_back(temp_dL_dInput[tCounter][0]);
+					tCounter++;
+				}
+			}
+		}
+
 	}
-	return std::vector<double>();
+	return dL_dInput;
 }
 
 
 CNN::CNN(int numConvFilters, int numSMaxNodes) {
 	conv_ = Convolution(numConvFilters);
+	pool_ = Pool();
 	sMax_ = SoftMax(numSMaxNodes);
 	//conv_.printFilters();
 }
@@ -242,12 +305,23 @@ CNN::~CNN() {
 }
 
 std::vector<double> CNN::forward(matrix &canvas) {
-	//Takes the canvas and performs convolution
-	//28x28 -> 26x26x8
+	//Centers the drawing on the canvas
 	matrix c;
 	centerDrawing(canvas, &c);
+	/*
+	std::cout << "Centered matrix: \n";
+	for (int i = 0; i < (*out).size(); ++i) {
+	std::cout << std::endl;
+	for (int j = 0; j < (*out)[0].size(); ++j) {
+	std::cout << (0.5+(*out)[i][j]);
+	}
+	}
+	std::cout << std::endl;
+	*/
+
+	//Takes the centered canvas drawing and performs convolution
+	//28x28 -> 26x26x8
 	std::vector<matrix> conv = conv_.forward(c);
-	
 	/*
 	std::cout << "After convolution:";
 	for (int v = 0; v < conv.size(); ++v) {
@@ -264,7 +338,7 @@ std::vector<double> CNN::forward(matrix &canvas) {
 
 	//Pools together the convolution's outputs via max value in a 2x2 area
 	//26x26x8 -> 13x13x8
-	std::vector<matrix> pool = poolMax(conv);
+	std::vector<matrix> pool = pool_.forward(conv);
 	/*
 	std::cout << "After pooling:";
 	for (int v = 0; v < pool.size(); ++v) {
@@ -292,7 +366,8 @@ std::vector<double> CNN::forward(matrix &canvas) {
 }
 
 void CNN::backProp(std::vector<double> &dL_dOut, double learnRate) {
-	std::vector<double> dL_dPool = sMax_.backProp(dL_dOut, learnRate);
+	std::vector<matrix> dL_dSMax = sMax_.backProp(dL_dOut, learnRate);
+	std::vector<matrix> dL_dPool = pool_.backProp(dL_dSMax);
 }
 
 void CNN::centerDrawing(matrix &canvas, matrix* out) {
@@ -321,15 +396,4 @@ void CNN::centerDrawing(matrix &canvas, matrix* out) {
 			(*out)[dy+(y-minY)][dx+(x-minX)] = canvas[y][x];
 		}
 	}
-
-	/*
-	std::cout << "Centered matrix: \n";
-	for (int i = 0; i < (*out).size(); ++i) {
-		std::cout << std::endl;
-		for (int j = 0; j < (*out)[0].size(); ++j) {
-			std::cout << (0.5+(*out)[i][j]);
-		}
-	}
-	std::cout << std::endl;
-	*/
 }

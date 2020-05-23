@@ -24,12 +24,21 @@ private:
 	std::vector<matrix> filters_; //Each filter is 3x3
 };
 
+class Pool {
+public: 
+	Pool() {};
+	std::vector<matrix> forward(std::vector<matrix> &input);
+	std::vector<matrix> backProp(std::vector<matrix> dL_dSMax);
+private:
+	std::vector<matrix> inputCache_;
+};
+
 class SoftMax {
 public:
 	SoftMax(int numOut = 10);
 
 	std::vector<double> forward(std::vector<matrix> &input);
-	std::vector<double> backProp(std::vector<double> &dL_dOut, double learnRate);
+	std::vector<matrix> backProp(std::vector<double> &dL_dOut, double learnRate);
 private:
 	matrix weights_;
 	std::vector<double> biases_;
@@ -48,11 +57,10 @@ public:
 	void backProp(std::vector<double> &dl_dOut, double learnRate = 0.005); 
 
 private:
-	Convolution conv_;
-	SoftMax sMax_;
-	std::vector<matrix> poolMax(std::vector<matrix> &input);
-
 	void centerDrawing(matrix &canvas, matrix* out);
+	Convolution conv_;
+	Pool pool_;
+	SoftMax sMax_;
 };
 
 #endif

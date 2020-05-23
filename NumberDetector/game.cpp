@@ -39,7 +39,7 @@ void Game::gameLoop() {
 		}
 	}
 
-	filepath_ = "large0-9_BEFORECENTERINGLAYER.txt";
+	filepath_ = "large0-9.txt";
 	bool confirmingDataClear = false;
 
 	emptyCanvas_ = true;
@@ -332,6 +332,7 @@ void Game::writeData(std::string &filepath, bool append) {
 }
 
 void Game::trainFromData(std::string &filepath, int epochs) {
+	double startTime = SDL_GetTicks();
 	std::ifstream reader;
 	reader.open(filepath_, std::fstream::in);
 	if (!reader.good()) {
@@ -362,7 +363,7 @@ void Game::trainFromData(std::string &filepath, int epochs) {
 		}
 	}
 
-	std::cout << "Completed training at " << epochCounter << " epochs.\n";
+	std::cout << "Completed training at " << epochCounter << " epochs in " << 0.001*(SDL_GetTicks()-startTime) << " seconds.\n";
 
 	canvas_.clear();
 	for (int i = 0; i < 28; ++i) {
