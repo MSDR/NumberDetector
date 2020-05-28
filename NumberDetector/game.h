@@ -3,6 +3,7 @@
 
 #include <algorithm>?
 #include <fstream>
+#include <list>
 #include <string>
 #include <time.h>
 #include <vector>
@@ -24,7 +25,7 @@ private:
 	void gameLoop();
 
 	CNN cnn_;
-	void cnnPass(bool printStats = true);
+	void cnnPass(bool printStats = true, bool stop = false);
 
 	void draw(Graphics &graphics);
 	void drawBackground(SDL_Renderer* renderer);
@@ -37,9 +38,12 @@ private:
 	void trainFromData(std::string &filepath, int epochs = -1);
 	void loadData(std::string &filepath);
 
+	bool printForExcel_;
 	bool collectingData_;
 	bool emptyCanvas_;
 
+	double learnRate_;
+	std::list<double> lossCache_;
 	int guess_;
 	int canvasNum_;
 	Text* numRequestLine_;

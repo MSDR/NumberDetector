@@ -17,11 +17,13 @@ public:
 	//Canvas is a 28x28 input
 	//Returns a numFilters_x26x26 output
 	std::vector<matrix> forward(matrix &canvas);
+	void backProp(std::vector<matrix> dL_dPool, double learnRate);
 
 	void printFilters();
 private:
 	int numFilters_;
 	std::vector<matrix> filters_; //Each filter is 3x3
+	matrix inputCache_;
 };
 
 class Pool {
@@ -51,16 +53,17 @@ private:
 class CNN {
 public:
 	CNN(int numConvFilters = 8, int numSMaxNodes = 10);
-	~CNN();
 
 	std::vector<double> forward(matrix &canvas);
-	void backProp(std::vector<double> &dl_dOut, double learnRate = 0.005); 
+	void backProp(std::vector<double> &dl_dOut, double learnRate = 0.005, bool stop = false); 
 
+	bool maxTrained_; //Guards against filters becoming nan
 private:
 	void centerDrawing(matrix &canvas, matrix* out);
 	Convolution conv_;
 	Pool pool_;
 	SoftMax sMax_;
+
 };
 
 #endif

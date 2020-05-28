@@ -33,6 +33,8 @@ matrix matrixMultiplication(matrix &a, matrix &b) {
 				sum += a[m][n] * b[n][p];
 			}
 			o[m].push_back(sum);
+			//if (isnan(o[m][p]))
+			//	std::cout << "found nan in mm";
 		}
 	}
 
@@ -71,6 +73,7 @@ void Convolution::printFilters() {
 }
 
 std::vector<matrix> Convolution::forward(matrix &canvas) {
+	inputCache_ = matrix(canvas);
 	std::vector<matrix> convases;
 	for(int f = 0; f < numFilters_; ++f) {
 		matrix convas;
@@ -90,6 +93,28 @@ std::vector<matrix> Convolution::forward(matrix &canvas) {
 	}
 	return convases;
 }
+
+void Convolution::backProp(std::vector<matrix> dL_dPool, double learnRate) {
+	for (int f = 0; f < numFilters_; ++f) {
+		for (int y = 0; y < filters_[f].size(); ++y) {
+			for (int x = 0; x < filters_[f][y].size(); ++x) {
+				double dL_dFilter = 0.0; //dL_dFilter(x,y)
+				for (int j = 0; j < inputCache_.size()-2; ++j) {
+					for (int i = 0; i < inputCache_[j].size()-2; ++i) {
+						dL_dFilter += dL_dPool[f][j][i]*inputCache_[j+y][i+x];
+					}
+				}
+				filters_[f][y][x] -= learnRate*dL_dFilter;
+				if (isnan(filters_[f][y][x])) {
+					//std::cout << dL_dFilter;
+					//std::cout << "nan detected";
+				}
+			}
+		}
+	}
+}
+
+
 
 std::vector<matrix> Pool::forward(std::vector<matrix> &input) {
 	inputCache_ = std::vector<matrix>(input);
@@ -131,12 +156,14 @@ std::vector<matrix> Pool::backProp(std::vector<matrix> dL_dSMax) {
 						maxInPool = maxInPool > inputCache_[f][i*2+im][j*2+jm] ? maxInPool : inputCache_[f][i*2+im][j*2+jm] ;
 					}
 				}
+				bool maxFound = false;
 				for (int im = 0; im < 2; ++im) {
 					//std::cout << std::endl;
 					for (int jm = 0; jm < 2; ++jm) {
 						//std::cout << input[f][i * 2 + im][j * 2 + jm] << " ";
-						if(inputCache_[f][i*2+im][j*2+jm] == maxInPool){
+						if(inputCache_[f][i*2+im][j*2+jm] == maxInPool && !maxFound){
 							pool[i*2+im].push_back(dL_dSMax[f][i][j]);
+							maxFound = true;
 						} else {
 							pool[i*2+im].push_back(0.0);
 						}
@@ -147,18 +174,10 @@ std::vector<matrix> Pool::backProp(std::vector<matrix> dL_dSMax) {
 		dL_dPool.push_back(pool);
 	}
 
-	for (int v = 0; v < dL_dPool.size(); ++v) {
-		std::cout << "\n_____________________________";
-		for (int i = 0; i < dL_dPool[v].size(); ++i) {
-			std::cout << std::endl;
-			for (int j = 0; j < dL_dPool[v][i].size(); ++j) {
-				std::cout << (dL_dPool[v][i][j] > 0 ? "  " : " ") << std::to_string(dL_dPool[v][i][j]);
-			}
-		}
-	}
-
 	return dL_dPool;
 }
+
+
 
 SoftMax::SoftMax(int numOut) {
 	std::default_random_engine gen;
@@ -207,6 +226,7 @@ std::vector<double> SoftMax::forward(std::vector<matrix> &input) {
 		totalsCache_.push_back(total);
 		totalSumCache_ += total;
 	}
+
 	//apply softmax formula: https://victorzhou.com/blog/softmax/
 	for (int i = 0; i < out.size(); ++i) {
 		out[i] = out[i] / totalSumCache_;
@@ -227,15 +247,14 @@ std::vector<matrix> SoftMax::backProp(std::vector<double>& dL_dOut, double learn
 		for (int k = 0; k < dL_dOut.size(); ++k) {
 			if (k == c) {
 				dOut_dt.push_back(
-					(totalsCache_[c] * (totalSumCache_ - totalsCache_[c])) /
-					(totalSumCache_*totalSumCache_)
+					(totalsCache_[c] * (totalSumCache_ - totalsCache_[c])) / (totalSumCache_*totalSumCache_)
 				);
 			} else {
 				dOut_dt.push_back(
-					-(totalsCache_[c]*totalsCache_[c]) / 
-					 (totalSumCache_*totalSumCache_)
+					-(totalsCache_[c]*totalsCache_[c]) / (totalSumCache_*totalSumCache_)
 				);
 			}
+			if (isnan(dOut_dt.back())) throw std::runtime_error("nan");
 		}
 
 		matrix dL_dt; //1x10
@@ -275,7 +294,7 @@ std::vector<matrix> SoftMax::backProp(std::vector<double>& dL_dOut, double learn
 
 		//1352x1
 		matrix temp_dL_dInput = matrixMultiplication(dt_dInput, dL_dt);
-
+		bool nan = false;
 		//Handles the reshaping of dL_dInput from temp
 		int tCounter = 0;
 		for (int i = 0; i < 8; ++i) {
@@ -285,23 +304,23 @@ std::vector<matrix> SoftMax::backProp(std::vector<double>& dL_dOut, double learn
 				for (int k = 0; k < 13; ++k) {
 					dL_dInput[i][j].push_back(temp_dL_dInput[tCounter][0]);
 					tCounter++;
+					if (isnan(dL_dInput[i][j][k]))
+						nan = true;
 				}
 			}
 		}
-
 	}
 	return dL_dInput;
 }
 
 
+
 CNN::CNN(int numConvFilters, int numSMaxNodes) {
+	maxTrained_ = false;
 	conv_ = Convolution(numConvFilters);
 	pool_ = Pool();
 	sMax_ = SoftMax(numSMaxNodes);
 	//conv_.printFilters();
-}
-
-CNN::~CNN() {
 }
 
 std::vector<double> CNN::forward(matrix &canvas) {
@@ -365,9 +384,19 @@ std::vector<double> CNN::forward(matrix &canvas) {
 	return out;
 }
 
-void CNN::backProp(std::vector<double> &dL_dOut, double learnRate) {
-	std::vector<matrix> dL_dSMax = sMax_.backProp(dL_dOut, learnRate);
+void CNN::backProp(std::vector<double> &dL_dOut, double learnRate, bool stop) {
+	if (maxTrained_) return;
+	std::vector<matrix> dL_dSMax;
+	try { 
+		dL_dSMax = sMax_.backProp(dL_dOut, learnRate);
+	}
+	catch (std::runtime_error) { 
+		maxTrained_ = true;
+		std::cout << "Number Detector has been over-trained.\nExpand the dataset or reduce the learning rate for better results.\n";
+		return;
+	};
 	std::vector<matrix> dL_dPool = pool_.backProp(dL_dSMax);
+	conv_.backProp(dL_dPool, learnRate);
 }
 
 void CNN::centerDrawing(matrix &canvas, matrix* out) {
