@@ -25,7 +25,7 @@ private:
 	void gameLoop();
 
 	CNN cnn_;
-	void cnnPass(bool printStats = true, bool stop = false);
+	void cnnPass(bool printStats = true);
 
 	void draw(Graphics &graphics);
 	void drawBackground(SDL_Renderer* renderer);

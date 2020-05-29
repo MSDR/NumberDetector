@@ -55,7 +55,7 @@ public:
 	CNN(int numConvFilters = 8, int numSMaxNodes = 10);
 
 	std::vector<double> forward(matrix &canvas);
-	void backProp(std::vector<double> &dl_dOut, double learnRate = 0.005, bool stop = false); 
+	void backProp(std::vector<double> &dl_dOut, double learnRate = 0.005); 
 
 	bool maxTrained_; //Guards against filters becoming nan
 private:

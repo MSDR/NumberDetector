@@ -165,6 +165,7 @@ void Game::gameLoop() {
 		if (input.wasKeyPressed(SDL_SCANCODE_W)) {
 			if (input.isKeyHeld(SDL_SCANCODE_LSHIFT)) {
 				confirmingDataClear = true;
+				std::cout << "\nTotal canvases: " << canvases_.size();
 				std::cout << "\nAre you sure you want to clear and replace all data in " << filepath_ << "?\n Press ENTER to continue, anything else to cancel.\n";
 			} else {
 				writeData(filepath_, true);
@@ -190,7 +191,7 @@ void Game::gameLoop() {
 	}//end game loop
 }
 
-void Game::cnnPass(bool printStats, bool stop) {
+void Game::cnnPass(bool printStats) {
 	//Forward pass
 	std::vector<double> result = cnn_.forward(canvas_);
 
@@ -199,7 +200,7 @@ void Game::cnnPass(bool printStats, bool stop) {
 		int guess = 0;
 		for (int i = 0; i < result.size(); ++i) {
 			guess = result[i] > result[guess] ? i : guess;
-			std::cout << std::endl << i << " | Confidence: " << (result[i] < 0.0001 ? "~0.000" : std::to_string(result[i]));
+			std::cout << std::endl << i << " | Confidence: " << (result[i] < 0.0001 ? "~0.000" : " " + std::to_string(result[i]));
 		}
 		guess_ = guess;
 		std::cout << "\nGuess: " << guess << std::endl;
@@ -222,7 +223,7 @@ void Game::cnnPass(bool printStats, bool stop) {
 		std::vector<double> gradient(10, 0);
 		gradient[canvasNum_] = -(1 / result[canvasNum_]);
 		//Backwards pass (adjusting weights)
-		cnn_.backProp(gradient, learnRate_, stop);
+		cnn_.backProp(gradient, learnRate_);
 	}
 }
 
@@ -357,12 +358,13 @@ void Game::trainFromData(std::string &filepath, int epochs) {
 	int epochCounter = 0;
 	std::string line = "This is a meaningless string.";
 
-	while (line != "" && !cnn_.maxTrained_) {
-		std::getline(reader, line);
+	std::cout << std::endl;
+
+	while (std::getline(reader, line) && !cnn_.maxTrained_) {
 		if (line[0] == '_') { //Run canvas through CNN
 			if(epochCounter > 0) {
 				if(printForExcel_) std::cout << epochCounter << "	";
-				cnnPass(false, (epochCounter == 93 ? true : false)); //REMOVE TERNARY
+				cnnPass(false); //REMOVE TERNARY
 				if (!printForExcel_ && epochCounter % (epochs == -1 ? 50 : epochs/25) == 0) std::cout << "Completed " << epochCounter << " epochs.\n";
 				if (epochs != -1 && epochCounter > epochs) break;
 			}
@@ -393,11 +395,10 @@ void Game::loadData(std::string &filepath) {
 	std::ifstream reader;
 	reader.open(filepath_, std::fstream::in);
 
-	std::string line = "This is another meaningless string.";
+	std::string line = "Yahaha! You found me!";
 
 	int loadCounter = 0;
-	while (line != "") {
-		std::getline(reader, line);
+	while (std::getline(reader, line)) {
 		if (line[0] == '_') { 
 			loadCounter++;
 			canvases_.push_back(std::make_pair(matrix(), line[1]-48));
@@ -409,6 +410,9 @@ void Game::loadData(std::string &filepath) {
 		}
 	}
 
-	std::cout << loadCounter << " canvases from " << filepath << " has been loaded into memory.\n";
+	reader.close();
+	if (loadCounter == 0) std::cout << filepath << " is empty.\n";
+	else if (loadCounter == 1) std::cout << "1 canvas from " << filepath << " has been loaded into memory.\n";
+	else std::cout << loadCounter << " canvases from " << filepath << " have been loaded into memory.\n";
 	std::cout << "Total canvases: " << canvases_.size() << std::endl;
 }

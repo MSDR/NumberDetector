@@ -33,8 +33,6 @@ matrix matrixMultiplication(matrix &a, matrix &b) {
 				sum += a[m][n] * b[n][p];
 			}
 			o[m].push_back(sum);
-			//if (isnan(o[m][p]))
-			//	std::cout << "found nan in mm";
 		}
 	}
 
@@ -106,8 +104,6 @@ void Convolution::backProp(std::vector<matrix> dL_dPool, double learnRate) {
 				}
 				filters_[f][y][x] -= learnRate*dL_dFilter;
 				if (isnan(filters_[f][y][x])) {
-					//std::cout << dL_dFilter;
-					//std::cout << "nan detected";
 				}
 			}
 		}
@@ -384,7 +380,7 @@ std::vector<double> CNN::forward(matrix &canvas) {
 	return out;
 }
 
-void CNN::backProp(std::vector<double> &dL_dOut, double learnRate, bool stop) {
+void CNN::backProp(std::vector<double> &dL_dOut, double learnRate) {
 	if (maxTrained_) return;
 	std::vector<matrix> dL_dSMax;
 	try { 
