@@ -1,7 +1,6 @@
 ﻿#include "game.h"
 
-
-Game::Game() {
+Game::Game(std::string &filepath) {
 	SDL_Init(SDL_INIT_EVERYTHING);
 	//IMG_Init(IMG_INIT_PNG);
 	if (TTF_Init() == -1) {
@@ -9,7 +8,20 @@ Game::Game() {
 		SDL_Quit();
 	}
 
+	filepath_ = filepath == "" ? "0-1.txt" : filepath;
+	/*
+	Some available datasets: 
+	125 canvases -- 0-1.txt [only contains 0's or 1's]
+	375 canvases -- small0-9.txt
+	600 canvases -- medium0-9.txt
+	1200 canvases -- large0-9.txt
+	*/
 	srand(time(0)); 
+
+	emptyCanvas_ = true;
+	collectingData_ = true;
+	printForExcel_ = false;
+	guess_ = -1;
 
 	learnRate_ = 0.001;
 	cnn_ = CNN(8, 10);
@@ -29,10 +41,6 @@ void Game::gameLoop() {
 	Input input;
 	SDL_Event event;
 
-	int LAST_UPDATE_TIME = SDL_GetTicks();
-
-	//brushOutline_ = new Sprite(graphics, "Images/BrushOutline.png", 0, 0, 92, 92); 
-
 	for (int i = 0; i < 28; ++i) {
 		canvas_.push_back(std::vector<double>());
 		for (int j = 0; j < 28; ++j) {
@@ -40,13 +48,8 @@ void Game::gameLoop() {
 		}
 	}
 
-	filepath_ = "large0-9.txt";
+	//Freezes the program until confirmation if user is requesting to clear a data file
 	bool confirmingDataClear = false;
-
-	emptyCanvas_ = true;
-	collectingData_ = true;
-	printForExcel_ = false;
-	guess_ = -1;
 
 	//Set up number request text
 	canvasNum_ = std::rand() % 10;
@@ -62,16 +65,16 @@ void Game::gameLoop() {
 			if (event.type == SDL_KEYDOWN) {
 				if (event.key.repeat == 0) {
 					input.keyDownEvent(event);
+
+					//Handles data write confirmation
 					if (confirmingDataClear && !input.wasKeyPressed(SDL_SCANCODE_RETURN)) {
 						confirmingDataClear = false;
 						std::cout << "\nData will NOT be cleared.\n";
-					}
-					else if (confirmingDataClear && input.wasKeyPressed(SDL_SCANCODE_RETURN)) {
+					}	else if (confirmingDataClear && input.wasKeyPressed(SDL_SCANCODE_RETURN)) {
 						confirmingDataClear = false;
 						std::cout << "\nData clearing will proceed.\n";
 						writeData(filepath_, false);
 					}
-
 				}
 			} else if (event.type = SDL_KEYUP) {
 				input.keyUpEvent(event);
@@ -80,18 +83,18 @@ void Game::gameLoop() {
 			}
 		}
 
-		//Exit the program
+		//Exit the program -- press DEL
 		if (input.wasKeyPressed(SDL_SCANCODE_DELETE))
 			return;
 
 		if (confirmingDataClear)
 			continue;
-		
 
+		//Exits training -- press RSHIFT
 		if (input.wasKeyPressed(SDL_SCANCODE_RSHIFT))
 			collectingData_ = !collectingData_;
 
-		//Draw onto canvas
+		//Draw onto canvas -- either hold down LMouse or D
 		if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) || input.isKeyHeld(SDL_SCANCODE_D)) {
 			emptyCanvas_ = false;
 			int mouseX = 0;
@@ -107,7 +110,7 @@ void Game::gameLoop() {
 			}
 		}
 		
-		//Clear canvas
+		//Clear canvas -- press Z or BACKSPACE
 		if (input.wasKeyPressed(SDL_SCANCODE_Z) || input.wasKeyPressed(SDL_SCANCODE_BACKSPACE)) {
 			emptyCanvas_ = true;
 			for (int i = 0; i < 28; ++i) {
@@ -120,7 +123,7 @@ void Game::gameLoop() {
 			guess_ = -1;
 		}
 
-		//Submit a canvas
+		//Submit a canvas -- press E or RETURN/ENTER
 		if (!emptyCanvas_ && (input.wasKeyPressed(SDL_SCANCODE_E) || input.wasKeyPressed(SDL_SCANCODE_RETURN))) {
 			emptyCanvas_ = true;
 			matrix c;
@@ -139,7 +142,7 @@ void Game::gameLoop() {
 			guess_ = -1;
 		}
 
-		//Print canvases_ to the console
+		//Print canvas memory [canvases_] to the console -- press S
 		if (input.wasKeyPressed(SDL_SCANCODE_S)) {
 			std::cout << "\n __________________________________________________________\n";
 			for(int v = 0; v < canvases_.size(); ++v){
@@ -155,13 +158,14 @@ void Game::gameLoop() {
 			std::cout << std::endl;
 		}
 
-		//Pass current canvas forward through the CNN
+		//Pass current canvas forward through the CNN -- press F (respects will be paid)
 		if (input.wasKeyPressed(SDL_SCANCODE_F)) {
 			cnnPass();
 			numRequestLine_->update(graphics, "I guess " + std::to_string(guess_));
 			draw(graphics);
 		}
 
+		//Append canvas memory to data file -- press W, hold LSHIFT to clear and replace all data
 		if (input.wasKeyPressed(SDL_SCANCODE_W)) {
 			if (input.isKeyHeld(SDL_SCANCODE_LSHIFT)) {
 				confirmingDataClear = true;
@@ -172,6 +176,7 @@ void Game::gameLoop() {
 			}
 		}
 
+		//Train CNN from data file -- press T
 		if (input.wasKeyPressed(SDL_SCANCODE_T)){
 			if (printForExcel_) std::cout << "Epoch	MeanLossDiff	Loss\n";
 			bool cd = collectingData_;
@@ -180,13 +185,11 @@ void Game::gameLoop() {
 			collectingData_ = cd;
 		}
 
+		//Load canvases into memory from data file -- press L
 		if (input.wasKeyPressed(SDL_SCANCODE_L))
 			loadData(filepath_);
 
-		const int CURRENT_TIME_MILLIS = SDL_GetTicks();
-		int ELAPSED_TIME_MILLIS = CURRENT_TIME_MILLIS - LAST_UPDATE_TIME;
-		update(ELAPSED_TIME_MILLIS);
-		LAST_UPDATE_TIME = CURRENT_TIME_MILLIS;
+		//draws all graphics to the window
 		draw(graphics);
 	}//end game loop
 }
@@ -226,6 +229,105 @@ void Game::cnnPass(bool printStats) {
 		cnn_.backProp(gradient, learnRate_);
 	}
 }
+
+
+void Game::writeData(std::string &filepath, bool append) {
+	std::ofstream writer;
+	writer.open(filepath, std::fstream::out | (append ? std::fstream::app : std::fstream::trunc));
+	if (!writer.good()) {
+		std::cout << std::endl << "Write failed. Invalid filepath.\n";
+		return;
+	}
+
+	//Write data
+	for (int v = 0; v < canvases_.size(); ++v) {
+		writer << "_" << canvases_[v].second << "_";
+		for (int i = 0; i < canvases_[v].first.size(); ++i) {
+			writer << std::endl;
+			for (int j = 0; j < canvases_[v].first[i].size(); ++j) {
+				writer << (canvases_[v].first[i][j]+0.5);
+			}
+		}
+		writer << (v == canvases_.size() - 1 ? "" : "\n");
+	}
+
+	writer.close();
+
+	std::cout << std::endl << "Write success" << (append ? " with append." : (". All data in " + filepath) + " has been cleared and replaced.") << std::endl;
+}
+
+void Game::trainFromData(std::string &filepath, int epochs) {
+	double startTime = SDL_GetTicks();
+	std::ifstream reader;
+	reader.open(filepath_, std::fstream::in);
+	if (!reader.good()) {
+		std::cout << std::endl << "Training failed. Invalid filepath.\n";
+		return;
+	}
+
+	canvas_.clear();
+	int epochCounter = 0;
+	std::string line = "This is a meaningless string.";
+
+	std::cout << std::endl;
+
+	while (std::getline(reader, line) && !cnn_.maxTrained_) {
+		if (line[0] == '_') { //Run canvas through CNN
+			if(epochCounter > 0) {
+				if(printForExcel_) std::cout << epochCounter << "	";
+				cnnPass(false); //REMOVE TERNARY
+				if (!printForExcel_ && epochCounter % (epochs == -1 ? 50 : epochs/25) == 0) std::cout << "Completed " << epochCounter << " epochs.\n";
+				if (epochs != -1 && epochCounter > epochs) break;
+			}
+			epochCounter++;
+			canvas_.clear();
+			canvasNum_ = line[1] - 48;
+		} else {
+			canvas_.push_back(std::vector<double>());
+			for (int i = 0; i < line.length(); ++i) {
+				canvas_.back().push_back(line[i] - 48.5);
+			}
+		}
+	}
+
+	std::cout << (cnn_.maxTrained_ ? "Halted training at " : "Completed training at ") << 
+		epochCounter << " epochs in " << 0.001*(SDL_GetTicks()-startTime) << " seconds.\n\n";
+
+	canvas_.clear();
+	for (int i = 0; i < 28; ++i) {
+		canvas_.push_back(std::vector<double>());
+		for (int j = 0; j < 28; ++j) {
+			canvas_[i].push_back(-0.5);
+		}
+	}
+}
+
+void Game::loadData(std::string &filepath) {
+	std::ifstream reader;
+	reader.open(filepath_, std::fstream::in);
+
+	std::string line = "Yahaha! You found me!";
+
+	int loadCounter = 0;
+	while (std::getline(reader, line)) {
+		if (line[0] == '_') { 
+			loadCounter++;
+			canvases_.push_back(std::make_pair(matrix(), line[1]-48));
+		} else {
+			canvases_.back().first.push_back(std::vector<double>());
+			for (int i = 0; i < line.length(); ++i) {
+				canvases_.back().first.back().push_back(line[i] - 48.5);
+			}
+		}
+	}
+
+	reader.close();
+	if (loadCounter == 0) std::cout << filepath << " is empty.\n";
+	else if (loadCounter == 1) std::cout << "1 canvas from " << filepath << " has been loaded into memory.\n";
+	else std::cout << loadCounter << " canvases from " << filepath << " have been loaded into memory.\n";
+	std::cout << "Total canvases: " << canvases_.size() << std::endl;
+}
+
 
 void Game::draw(Graphics &graphics) {
 	graphics.clear();
@@ -316,103 +418,4 @@ void Game::drawCanvas(SDL_Renderer* renderer) {
 			}
 		}
 	}
-}
-void Game::update(float elapsedTime) {
-}
-
-void Game::writeData(std::string &filepath, bool append) {
-	std::ofstream writer;
-	writer.open(filepath, std::fstream::out | (append ? std::fstream::app : std::fstream::trunc));
-	if (!writer.good()) {
-		std::cout << std::endl << "Write failed. Invalid filepath.\n";
-		return;
-	}
-
-	//Write data
-	for (int v = 0; v < canvases_.size(); ++v) {
-		writer << "_" << canvases_[v].second << "_";
-		for (int i = 0; i < canvases_[v].first.size(); ++i) {
-			writer << std::endl;
-			for (int j = 0; j < canvases_[v].first[i].size(); ++j) {
-				writer << (canvases_[v].first[i][j]+0.5);
-			}
-		}
-		writer << (v == canvases_.size() - 1 ? "" : "\n");
-	}
-
-	writer.close();
-
-	std::cout << std::endl << "Write success" << (append ? " with append." : (". All data in " + filepath) + " has been cleared and replaced.") << std::endl;
-}
-
-void Game::trainFromData(std::string &filepath, int epochs) {
-	double startTime = SDL_GetTicks();
-	std::ifstream reader;
-	reader.open(filepath_, std::fstream::in);
-	if (!reader.good()) {
-		std::cout << std::endl << "Training failed. Invalid filepath.\n";
-		return;
-	}
-
-	canvas_.clear();
-	int epochCounter = 0;
-	std::string line = "This is a meaningless string.";
-
-	std::cout << std::endl;
-
-	while (std::getline(reader, line) && !cnn_.maxTrained_) {
-		if (line[0] == '_') { //Run canvas through CNN
-			if(epochCounter > 0) {
-				if(printForExcel_) std::cout << epochCounter << "	";
-				cnnPass(false); //REMOVE TERNARY
-				if (!printForExcel_ && epochCounter % (epochs == -1 ? 50 : epochs/25) == 0) std::cout << "Completed " << epochCounter << " epochs.\n";
-				if (epochs != -1 && epochCounter > epochs) break;
-			}
-			epochCounter++;
-			canvas_.clear();
-			canvasNum_ = line[1] - 48;
-		} else {
-			canvas_.push_back(std::vector<double>());
-			for (int i = 0; i < line.length(); ++i) {
-				canvas_.back().push_back(line[i] - 48.5);
-			}
-		}
-	}
-
-	std::cout << (cnn_.maxTrained_ ? "Halted training at " : "Completed training at ") << 
-					 epochCounter << " epochs in " << 0.001*(SDL_GetTicks()-startTime) << " seconds.\n\n";
-
-	canvas_.clear();
-	for (int i = 0; i < 28; ++i) {
-		canvas_.push_back(std::vector<double>());
-		for (int j = 0; j < 28; ++j) {
-			canvas_[i].push_back(-0.5);
-		}
-	}
-}
-
-void Game::loadData(std::string &filepath) {
-	std::ifstream reader;
-	reader.open(filepath_, std::fstream::in);
-
-	std::string line = "Yahaha! You found me!";
-
-	int loadCounter = 0;
-	while (std::getline(reader, line)) {
-		if (line[0] == '_') { 
-			loadCounter++;
-			canvases_.push_back(std::make_pair(matrix(), line[1]-48));
-		} else {
-			canvases_.back().first.push_back(std::vector<double>());
-			for (int i = 0; i < line.length(); ++i) {
-				canvases_.back().first.back().push_back(line[i] - 48.5);
-			}
-		}
-	}
-
-	reader.close();
-	if (loadCounter == 0) std::cout << filepath << " is empty.\n";
-	else if (loadCounter == 1) std::cout << "1 canvas from " << filepath << " has been loaded into memory.\n";
-	else std::cout << loadCounter << " canvases from " << filepath << " have been loaded into memory.\n";
-	std::cout << "Total canvases: " << canvases_.size() << std::endl;
 }

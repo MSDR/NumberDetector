@@ -128,7 +128,6 @@
     <ClCompile Include="graphics.cpp" />
     <ClCompile Include="input.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="neuron.cpp" />
     <ClCompile Include="sprite.cpp" />
     <ClCompile Include="text.cpp" />
   </ItemGroup>
@@ -138,7 +137,6 @@
     <ClInclude Include="globals.h" />
     <ClInclude Include="graphics.h" />
     <ClInclude Include="input.h" />
-    <ClInclude Include="neuron.h" />
     <ClInclude Include="rectangle.h" />
     <ClInclude Include="sprite.h" />
     <ClInclude Include="text.h" />

@@ -18,38 +18,56 @@ using globals::matrix;
 
 class Game {
 public:
-	Game();
+	Game(std::string &filepath);
 	~Game();
+
+	//The filepath of the data file. Should be a properly formatted .txt, format check not implemented
+	std::string filepath_;
 
 private:
 	void gameLoop();
 
 	CNN cnn_;
+
+	//Passes canvas_ through the network
+	//Includes backpropagation if collectingData
 	void cnnPass(bool printStats = true);
 
+	//Draws all graphics to the window
 	void draw(Graphics &graphics);
 	void drawBackground(SDL_Renderer* renderer);
 	void drawBrushOutline(SDL_Renderer* renderer, int mouseX, int mouseY);
 	void drawCanvas(SDL_Renderer* renderer);
-	void update(float elapsedTime);
+	Text* numRequestLine_;
 
-	std::string filepath_;
+	//Writes data from canvases_ into data file
+	//If append, appends memory [canvases_] onto file, otherwise replaces data with memory
 	void writeData(std::string &filepath, bool append);
-	void trainFromData(std::string &filepath, int epochs = -1);
-	void loadData(std::string &filepath);
 
-	bool printForExcel_;
+	//Trains CNN from data file
+	//If epochs = -1 [default], trains as many epochs as available data
+	void trainFromData(std::string &filepath, int epochs = -1);
+
+	//Loads data from file into memory
+	void loadData(std::string &filepath);
+	
+	//If true, will print data about training progress in excel-compatible formatting
+	bool printForExcel_; 
+
+	//Controls whether a pass will backpropagate, whether user is training or using the network
 	bool collectingData_;
+
+	//True if canvas_ is currently empty
 	bool emptyCanvas_;
 
+	//The learnrate for backpropagation
 	double learnRate_;
 	std::list<double> lossCache_;
-	int guess_;
-	int canvasNum_;
-	Text* numRequestLine_;
-	matrix canvas_;
-	std::vector<std::pair<matrix, int> > canvases_;
-	//Sprite* brushOutline_;
+
+	int guess_; //CNN's guess for number on canvas, entered after a pass
+	int canvasNum_; //True number canvas should represent, only used when collectingData
+	matrix canvas_; //A 2D vector of doubles holding the current canvas
+	std::vector<std::pair<matrix, int> > canvases_; //All entered or loaded canvases in memory
 };
 
 #endif GAME_H_

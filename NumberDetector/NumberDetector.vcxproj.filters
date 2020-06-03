@@ -30,9 +30,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="neuron.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="sprite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -57,9 +54,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="graphics.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="neuron.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sprite.h">
